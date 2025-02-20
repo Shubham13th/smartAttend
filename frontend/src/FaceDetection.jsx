@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import  { useEffect, useRef, useState } from "react";
 import * as faceapi from "face-api.js";
-import axios from "axios";
+import axios from 'axios';
 
 const FaceDetection = () => {
   const videoRef = useRef(null);
@@ -227,6 +227,7 @@ const FaceDetection = () => {
       {/* Registration Form */}
       <div style={{ marginBottom: "20px" }}>
         <input
+        className="form-control border p-6"
           type="text"
           placeholder="Enter Name"
           value={name}
