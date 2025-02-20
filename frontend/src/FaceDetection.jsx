@@ -1,193 +1,260 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import * as faceapi from 'face-api.js';
+import React, { useEffect, useRef, useState } from "react";
+import * as faceapi from "face-api.js";
+import axios from "axios";
 
 const FaceDetection = () => {
-    const videoRef = useRef();
-    const canvasRef = useRef();
-    const [studentName, setStudentName] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [students, setStudents] = useState([]);
-    const [faceMatcher, setFaceMatcher] = useState(null);
-    const [modelsLoaded, setModelsLoaded] = useState(false); // Track if models are loaded
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
-    // Load models and initialize video stream
-    useEffect(() => {
-        const loadModels = async () => {
-            try {
-                console.log('Loading models...');
-                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-                setModelsLoaded(true); // Set modelsLoaded to true after loading the models
-                console.log('Models loaded successfully');
-            } catch (error) {
-                console.error('Error loading face-api models:', error);
-                alert('Failed to load face detection models. Please try again.');
-            }
-        };
+  const [faceMatcher, setFaceMatcher] = useState(null);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
 
-        const startVideo = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                videoRef.current.srcObject = stream;
-                videoRef.current.onloadedmetadata = () => {
-                    canvasRef.current.width = videoRef.current.videoWidth;
-                    canvasRef.current.height = videoRef.current.videoHeight;
-                };
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                alert('Error accessing camera. Please allow camera access.');
-            }
-        };
+  // User input for registration
+  const [name, setName] = useState("");
 
-        loadModels().then(startVideo);
+  // Fetched from backend: each student has { _id, name, encoding }
+  const [registeredStudents, setRegisteredStudents] = useState([]);
 
-        return () => {
-            if (videoRef.current?.srcObject) {
-                videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
+  // For displaying recognized name in UI
+  const [recognizedStudent, setRecognizedStudent] = useState("Unknown");
 
-    // Fetch students and initialize face matcher
-    useEffect(() => {
-        const fetchStudents = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/students');
-                const data = await response.json();
-                setStudents(data);
+  // 1. Load face-api.js models, start webcam, and fetch students
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        console.log("Loading models...");
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
+        await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+        console.log("Models loaded successfully");
 
-                const labeledDescriptors = data.map(student =>
-                    new faceapi.LabeledFaceDescriptors(student.name, [new Float32Array(student.encoding)])
-                );
+        setIsModelLoaded(true);
+        startVideo();
+        fetchRegisteredStudents();
+      } catch (error) {
+        console.error("Error loading models:", error);
+      }
+    };
 
-                setFaceMatcher(new faceapi.FaceMatcher(labeledDescriptors));
-            } catch (error) {
-                console.error('Error fetching students:', error);
-            }
-        };
+    loadModels();
+  }, []);
 
-        fetchStudents();
-    }, []);
+  // 2. Start webcam
+  const startVideo = () => {
+    navigator.mediaDevices
+      .getUserMedia({ video: {} })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => console.error("Error accessing webcam:", err));
+  };
 
-    // Handle face detection and attendance marking
-    const detectFaces = useCallback(async () => {
-        if (!modelsLoaded || !faceMatcher) return; // Ensure models are loaded and faceMatcher is available
+  // 3. Fetch students from backend
+  const fetchRegisteredStudents = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/students");
+      setRegisteredStudents(response.data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+  };
 
-        const detections = await faceapi.detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+  // 4. Register new student (capture face descriptor and send to backend)
+  const handleRegister = async () => {
+    if (!name.trim()) {
+      alert("Please enter a name.");
+      return;
+    }
 
-        if (detections.length === 0) return;
+    const detections = await faceapi
+      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
 
-        detections.forEach(async (detection) => {
-            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+    if (!detections || !detections.descriptor) {
+      alert("No face detected. Please try again.");
+      return;
+    }
 
-            if (bestMatch.label !== 'unknown') {
-                const student = students.find(s => s.name === bestMatch.label);
-                if (student) {
-                    await markAttendance(student._id);
-                }
-            }
+    console.log("Descriptor length:", detections.descriptor.length);
+
+    // The backend expects "encoding" as an array of 128 floats
+    const studentData = {
+      name,
+      encoding: Array.from(detections.descriptor),
+    };
+
+    try {
+      await axios.post("http://localhost:5000/api/register", studentData);
+      alert(`${name} registered successfully!`);
+      fetchRegisteredStudents(); // Refresh the list
+      setName("");
+    } catch (error) {
+      console.error("Error registering student:", error.response?.data || error);
+      alert("Failed to register student.");
+    }
+  };
+
+  // 5. Build FaceMatcher from registered students
+  const initializeFaceMatcher = () => {
+    if (!isModelLoaded || registeredStudents.length === 0) {
+      console.warn("FaceMatcher not initialized: Models not loaded or no registered students.");
+      setFaceMatcher(null);
+      return;
+    }
+
+    try {
+      // Filter out invalid encodings (not 128-length)
+      const labeledDescriptors = registeredStudents
+        .map((student) => {
+          if (!student.encoding || student.encoding.length !== 128) {
+            console.warn(`Skipping invalid descriptor for ${student.name}`);
+            return null;
+          }
+          return new faceapi.LabeledFaceDescriptors(
+            student.name,
+            [new Float32Array(student.encoding)]
+          );
+        })
+        .filter(Boolean);
+
+      if (labeledDescriptors.length === 0) {
+        console.error("Error: No valid labeled face descriptors found.");
+        setFaceMatcher(null);
+        return;
+      }
+
+      const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+      setFaceMatcher(matcher);
+    } catch (error) {
+      console.error("Error initializing FaceMatcher:", error);
+    }
+  };
+
+  // Whenever we get new students or load models, re-initialize the matcher
+  useEffect(() => {
+    initializeFaceMatcher();
+  }, [registeredStudents, isModelLoaded]);
+
+  // 6. Handle video playing: set up detection loop
+  const handleVideoOnPlay = async () => {
+    if (!isModelLoaded || !faceMatcher) return;
+
+    // Run detection every 2 seconds
+    setInterval(async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+
+      // Use actual video dimensions to align bounding boxes correctly
+      const videoWidth = videoRef.current.videoWidth;
+      const videoHeight = videoRef.current.videoHeight;
+
+      canvasRef.current.width = videoWidth;
+      canvasRef.current.height = videoHeight;
+
+      // Detect faces
+      const detections = await faceapi
+        .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      // Resize to match video’s size
+      const displaySize = { width: videoWidth, height: videoHeight };
+      faceapi.matchDimensions(canvasRef.current, displaySize);
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+      // Clear previous drawings
+      const ctx = canvasRef.current.getContext("2d");
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      // Draw bounding boxes & landmarks
+      faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+      faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+
+      let detectedName = "Unknown";
+
+      if (faceMatcher) {
+        resizedDetections.forEach((detection) => {
+          // Check if descriptor is valid
+          if (!detection.descriptor || detection.descriptor.length !== 128) {
+            console.warn("Invalid face descriptor detected, skipping...");
+            return;
+          }
+
+          // Find best match
+          const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+          detectedName = bestMatch.label;
+
+          // Draw a labeled box
+          const { box } = detection.detection;
+          const drawBox = new faceapi.draw.DrawBox(box, {
+            label: bestMatch.toString(),
+          });
+          drawBox.draw(canvasRef.current);
         });
+      }
 
-        const canvas = canvasRef.current;
-        faceapi.matchDimensions(canvas, videoRef.current);
-        const resizedDetections = faceapi.resizeResults(detections, videoRef.current);
-        faceapi.draw.drawDetections(canvas, resizedDetections);
-        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-    }, [faceMatcher, students, modelsLoaded]);
+      // Update recognized name in UI
+      setRecognizedStudent(detectedName);
 
-    useEffect(() => {
-        const interval = setInterval(detectFaces, 1000);
-        return () => clearInterval(interval);
-    }, [detectFaces]);
+      // If recognized, mark attendance
+      if (detectedName !== "Unknown") {
+        markAttendance(detectedName);
+      }
+    }, 2000);
+  };
 
-    // Register student face encoding
-    const handleRegister = async () => {
-        if (!studentName) {
-            alert('Please enter a student name');
-            return;
-        }
-        if (isLoading) return;
+  // 7. Mark attendance for recognized student
+  const markAttendance = async (studentName) => {
+    try {
+      const student = registeredStudents.find((s) => s.name === studentName);
+      if (!student) return; // No match in our DB
 
-        setIsLoading(true);
+      await axios.post("http://localhost:5000/api/attendance", {
+        studentId: student._id,
+      });
+      console.log(`${studentName}'s attendance recorded.`);
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+    }
+  };
 
-        const detections = await faceapi.detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+  return (
+    <div style={{ textAlign: "center" }}>
+      <h1>Face Recognition System</h1>
 
-        if (detections.length === 0) {
-            alert('No face detected');
-            setIsLoading(false);
-            return;
-        }
+      {/* Registration Form */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Enter Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button onClick={handleRegister}>Capture Face</button>
+      </div>
 
-        const encoding = Array.from(detections[0].descriptor);
+      {/* Video & Canvas (no hard-coded width/height) */}
+      <div style={{ position: "relative", display: "inline-block" }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          onPlay={handleVideoOnPlay}
+          style={{ border: "1px solid black" }}
+        />
+        <canvas
+          ref={canvasRef}
+          style={{ position: "absolute", left: 0, top: 0 }}
+        />
+      </div>
 
-        try {
-            const response = await fetch('http://localhost:5000/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: studentName, encoding }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to register student');
-            }
-
-            const data = await response.json();
-            alert('Student registered successfully');
-            setStudents([...students, data.student]);
-
-            // Update face matcher with new student
-            setFaceMatcher(new faceapi.FaceMatcher([
-                ...faceMatcher.labeledDescriptors,
-                new faceapi.LabeledFaceDescriptors(data.student.name, [new Float32Array(data.student.encoding)])
-            ]));
-
-        } catch (error) {
-            console.error('Error registering student:', error);
-            alert('Error registering student');
-        } finally {
-            setIsLoading(false);
-            setStudentName('');
-        }
-    };
-
-    // Mark attendance for student
-    const markAttendance = async (studentId) => {
-        try {
-            const response = await fetch('http://localhost:5000/api/attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId }),
-            });
-
-            const result = await response.json();
-            console.log('Attendance marked:', result);
-        } catch (error) {
-            console.error('Error marking attendance:', error);
-        }
-    };
-
-    return (
-        <div style={{ position: 'relative' }}>
-            <video ref={videoRef} autoPlay muted width="720" height="560" />
-            <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0 }} />
-            <div>
-                <input
-                    type="text"
-                    placeholder="Enter student name"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                />
-                <button onClick={handleRegister} disabled={isLoading}>
-                    {isLoading ? 'Registering...' : 'Register Student'}
-                </button>
-            </div>
-        </div>
-    );
+      {/* Detected Name */}
+      <h2 style={{ marginTop: "20px", color: "blue" }}>
+        Detected Student: {recognizedStudent}
+      </h2>
+    </div>
+  );
 };
 
 export default FaceDetection;
