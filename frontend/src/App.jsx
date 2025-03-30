@@ -1,34 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import FaceDetection from './FaceDetection';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from './components/Home';
+import Login from './components/Login';
+import Register from './components/Register';
 import Dashboard from './Dashboard';
+import FaceDetection from './FaceDetection';
+import './App.css';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  return children;
+};
 
 function App() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetch('http://localhost:5000/api/data')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        return response.json();
-      })
-      .then((data) => setData(data.message))
-      .catch((error) => setError(error.message))
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
-    <div style={{ textAlign: 'center', padding: '20px' }}>
-      <h1>Attendance System</h1>
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {data && <p>{data}</p>}
-      <FaceDetection />
-      <Dashboard />
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/face-detection"
+            element={
+              <ProtectedRoute>
+                <FaceDetection />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

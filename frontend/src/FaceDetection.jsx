@@ -221,40 +221,48 @@ const FaceDetection = () => {
   };
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <h1>Face Recognition System</h1>
-
-      {/* Registration Form */}
-      <div style={{ marginBottom: "20px" }}>
-        <input
-        className="form-control border p-6"
-          type="text"
-          placeholder="Enter Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <button onClick={handleRegister}>Capture Face</button>
-      </div>
-
-      {/* Video & Canvas (no hard-coded width/height) */}
-      <div style={{ position: "relative", display: "inline-block" }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          onPlay={handleVideoOnPlay}
-          style={{ border: "1px solid black" }}
-        />
-        <canvas
-          ref={canvasRef}
-          style={{ position: "absolute", left: 0, top: 0 }}
-        />
-      </div>
-
-      {/* Detected Name */}
-      <h2 style={{ marginTop: "20px", color: "blue" }}>
-        Detected Student: {recognizedStudent}
-      </h2>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 p-6">
+    <h1 className="text-3xl font-extrabold text-white mb-6 drop-shadow-lg">
+      Face Recognition System
+    </h1>
+  
+    {/* Registration Form */}
+    <div className="bg-white shadow-lg rounded-2xl p-6 mb-6 w-full max-w-md flex flex-col items-center">
+      <input
+        className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        type="text"
+        placeholder="Enter Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button 
+        onClick={handleRegister}
+        className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md"
+      >
+        Capture Face
+      </button>
     </div>
+  
+    {/* Video & Canvas */}
+    <div className="relative border-4 border-white rounded-lg overflow-hidden shadow-lg">
+      <video
+        ref={videoRef}
+        autoPlay
+        onPlay={handleVideoOnPlay}
+        className="rounded-lg"
+      />
+      <canvas
+        ref={canvasRef}
+        className="absolute left-0 top-0"
+      />
+    </div>
+  
+    {/* Detected Name */}
+    <h2 className="mt-6 text-xl font-semibold text-white bg-white bg-opacity-20 px-4 py-2 rounded-lg shadow-md">
+      Detected Student: <span className="text-yellow-300">{recognizedStudent}</span>
+    </h2>
+  </div>
+  
   );
 };
 
