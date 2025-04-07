@@ -1,24 +1,34 @@
-import  { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as faceapi from "face-api.js";
 import axios from 'axios';
+import './FaceDetection.css';
 
 const FaceDetection = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-
-  const [faceMatcher, setFaceMatcher] = useState(null);
+  const navigate = useNavigate();
+  const [isCapturing, setIsCapturing] = useState(false);
+  const captureAngles = [
+    "Front",
+    "Left",
+    "Right",
+    "Up",
+    "Down"
+  ];
+  const [currentAngle, setCurrentAngle] = useState(0);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-
-  // User input for registration
+  const [faceMatcher, setFaceMatcher] = useState(null);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("");
+  const [registeredEmployees, setRegisteredEmployees] = useState([]);
+  const [recognizedEmployee, setRecognizedEmployee] = useState("Unknown");
+  const [status, setStatus] = useState("");
+  const [lastAttendanceMark, setLastAttendanceMark] = useState({});
+  const [isProcessingAttendance, setIsProcessingAttendance] = useState(false);
 
-  // Fetched from backend: each student has { _id, name, encoding }
-  const [registeredStudents, setRegisteredStudents] = useState([]);
-
-  // For displaying recognized name in UI
-  const [recognizedStudent, setRecognizedStudent] = useState("Unknown");
-
-  // 1. Load face-api.js models, start webcam, and fetch students
+  // Load models and initialize
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -26,96 +36,256 @@ const FaceDetection = () => {
         await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
         await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
         await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+        await faceapi.nets.faceExpressionNet.loadFromUri("/models");
         console.log("Models loaded successfully");
-
         setIsModelLoaded(true);
         startVideo();
-        fetchRegisteredStudents();
+        fetchRegisteredEmployees();
       } catch (error) {
         console.error("Error loading models:", error);
+        setStatus("Error loading face recognition models");
       }
     };
 
     loadModels();
   }, []);
 
-  // 2. Start webcam
   const startVideo = () => {
     navigator.mediaDevices
       .getUserMedia({ video: {} })
       .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+          };
         }
       })
-      .catch((err) => console.error("Error accessing webcam:", err));
+      .catch((err) => {
+        console.error("Error accessing webcam:", err);
+        setStatus("Error accessing webcam. Please check permissions and try again.");
+      });
   };
 
-  // 3. Fetch students from backend
-  const fetchRegisteredStudents = async () => {
+  const fetchRegisteredEmployees = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/students");
-      setRegisteredStudents(response.data);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setStatus("Please login to access this feature");
+        return;
+      }
+
+      // Try the employees with encodings endpoint first
+      let response;
+      try {
+        console.log("Fetching employees with encodings...");
+        response = await axios.get("http://localhost:5000/api/employees/with-encodings", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        console.log("Employees with encodings response:", response.data);
+      } catch (endpointError) {
+        console.error("Error fetching employees with encodings:", endpointError);
+        console.log('Falling back to regular employees endpoint...');
+        response = await axios.get("http://localhost:5000/api/employees", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        console.log("Regular employees response:", response.data);
+      }
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Filter out any employees without encodings
+        const employeesWithEncodings = response.data.filter(emp => emp.encoding && emp.encoding.length === 128);
+        console.log("Employees with valid encodings:", employeesWithEncodings.length);
+        setRegisteredEmployees(employeesWithEncodings);
+      } else {
+        console.error("Invalid response format:", response.data);
+        setStatus("Error: Invalid response format from server");
+        setRegisteredEmployees([]);
+      }
     } catch (error) {
-      console.error("Error fetching students:", error);
+      console.error("Error fetching employees:", error);
+      if (error.response?.status === 401) {
+        setStatus("Session expired. Please login again");
+        window.location.href = "/login";
+      } else if (error.response?.status === 404) {
+        setStatus("No registered employees found");
+        setRegisteredEmployees([]);
+      } else {
+        setStatus(error.response?.data?.message || "Error fetching registered employees");
+        setRegisteredEmployees([]);
+      }
     }
   };
 
-  // 4. Register new student (capture face descriptor and send to backend)
+  const checkLiveness = async (detections) => {
+    if (!detections || detections.length === 0) return false;
+    
+    const face = detections[0];
+    const expressions = face.expressions;
+    
+    // Basic liveness check based on expressions
+    const isNatural = expressions.happy > 0.5 || expressions.neutral > 0.5;
+    const hasBlink = face.landmarks.getLeftEye().length > 0 && 
+                    face.landmarks.getRightEye().length > 0;
+    
+    return isNatural && hasBlink;
+  };
+
   const handleRegister = async () => {
-    if (!name.trim()) {
-      alert("Please enter a name.");
+    if (!name.trim() || !email.trim() || !department.trim()) {
+      setStatus("Please fill in all fields");
       return;
     }
-
-    const detections = await faceapi
-      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptor();
-
-    if (!detections || !detections.descriptor) {
-      alert("No face detected. Please try again.");
-      return;
-    }
-
-    console.log("Descriptor length:", detections.descriptor.length);
-
-    // The backend expects "encoding" as an array of 128 floats
-    const studentData = {
-      name,
-      encoding: Array.from(detections.descriptor),
-    };
 
     try {
-      await axios.post("http://localhost:5000/api/register", studentData);
-      alert(`${name} registered successfully!`);
-      fetchRegisteredStudents(); // Refresh the list
-      setName("");
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setStatus("Please login to register employees");
+        return;
+      }
+
+      setIsCapturing(true);
+      setStatus(`Please position your face ${captureAngles[currentAngle]}`);
+      // Start capturing immediately
+      await captureFace();
     } catch (error) {
-      console.error("Error registering student:", error.response?.data || error);
-      alert("Failed to register student.");
+      console.error("Error starting registration:", error);
+      setStatus("Error starting registration process");
     }
   };
 
-  // 5. Build FaceMatcher from registered students
+  const captureFace = async () => {
+    if (!isCapturing) return;
+
+    try {
+      // Check if models are loaded
+      if (!isModelLoaded) {
+        setStatus("Face recognition models are still loading. Please wait...");
+        return;
+      }
+
+      // Check if video is ready
+      if (!videoRef.current || !videoRef.current.srcObject) {
+        setStatus("Camera not ready. Please wait for camera initialization...");
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setStatus("Please login to capture face");
+        return;
+      }
+
+      // Wait for video to be ready
+      if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+        setStatus("Please wait for camera to be ready...");
+        return;
+      }
+
+      setStatus("Detecting face...");
+      
+      const detections = await faceapi
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor()
+        .withFaceExpressions();
+
+      if (!detections || !detections.descriptor) {
+        setStatus("No face detected. Please position your face clearly in the frame.");
+        return;
+      }
+
+      // Check liveness
+      const isLivenessValid = await checkLiveness([detections]);
+      if (!isLivenessValid) {
+        setStatus("Liveness check failed. Please ensure you are a real person.");
+        return;
+      }
+
+      setStatus("Processing face data...");
+
+      // Store the face descriptor
+      const employeeData = {
+        name,
+        email,
+        department,
+        encoding: Array.from(detections.descriptor),
+        angle: captureAngles[currentAngle]
+      };
+
+      // Try employees endpoint first, fallback to students if needed
+      let response;
+      try {
+        response = await axios.post("http://localhost:5000/api/employees/register", employeeData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      } catch (endpointError) {
+        console.log('Employees endpoint failed, trying students endpoint...');
+        response = await axios.post("http://localhost:5000/api/students/register", employeeData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
+
+      // Handle the response properly
+      if (response.status === 200 || response.status === 201) {
+        // Move to next angle or complete registration
+        if (currentAngle < captureAngles.length - 1) {
+          setCurrentAngle(prev => prev + 1);
+          setStatus(`Face captured successfully! Please position your face ${captureAngles[currentAngle + 1]}`);
+        } else {
+          setStatus(`${name} registered successfully!`);
+          setIsCapturing(false);
+          setCurrentAngle(0);
+          setName("");
+          setEmail("");
+          setDepartment("");
+          fetchRegisteredEmployees();
+        }
+      } else {
+        setStatus(response.data?.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Error capturing face:", error);
+      if (error.response?.status === 401) {
+        setStatus("Session expired. Please login again");
+        window.location.href = "/login";
+      } else if (error.response?.status === 409) {
+        setStatus("Employee with this email already exists");
+      } else if (error.message.includes("face-api")) {
+        setStatus("Error with face detection. Please try again.");
+      } else {
+        setStatus(error.response?.data?.message || "Error capturing face. Please try again.");
+      }
+    }
+  };
+
+  // Build FaceMatcher from registered employees
   const initializeFaceMatcher = () => {
-    if (!isModelLoaded || registeredStudents.length === 0) {
-      console.warn("FaceMatcher not initialized: Models not loaded or no registered students.");
+    if (!isModelLoaded || registeredEmployees.length === 0) {
+      console.warn("FaceMatcher not initialized: Models not loaded or no registered employees.");
       setFaceMatcher(null);
       return;
     }
 
     try {
       // Filter out invalid encodings (not 128-length)
-      const labeledDescriptors = registeredStudents
-        .map((student) => {
-          if (!student.encoding || student.encoding.length !== 128) {
-            console.warn(`Skipping invalid descriptor for ${student.name}`);
+      const labeledDescriptors = registeredEmployees
+        .map((employee) => {
+          if (!employee.encoding || employee.encoding.length !== 128) {
+            console.warn(`Skipping invalid descriptor for ${employee.name}`);
             return null;
           }
           return new faceapi.LabeledFaceDescriptors(
-            student.name,
-            [new Float32Array(student.encoding)]
+            employee.name,
+            [new Float32Array(employee.encoding)]
           );
         })
         .filter(Boolean);
@@ -133,17 +303,17 @@ const FaceDetection = () => {
     }
   };
 
-  // Whenever we get new students or load models, re-initialize the matcher
+  // Whenever we get new employees or load models, re-initialize the matcher
   useEffect(() => {
     initializeFaceMatcher();
-  }, [registeredStudents, isModelLoaded]);
+  }, [registeredEmployees, isModelLoaded]);
 
-  // 6. Handle video playing: set up detection loop
+  // Handle video playing: set up detection loop
   const handleVideoOnPlay = async () => {
     if (!isModelLoaded || !faceMatcher) return;
 
-    // Run detection every 2 seconds
-    setInterval(async () => {
+    // Store interval ID for cleanup
+    const intervalId = setInterval(async () => {
       if (!videoRef.current || !canvasRef.current) return;
 
       // Use actual video dimensions to align bounding boxes correctly
@@ -159,7 +329,7 @@ const FaceDetection = () => {
         .withFaceLandmarks()
         .withFaceDescriptors();
 
-      // Resize to match video’s size
+      // Resize to match video's size
       const displaySize = { width: videoWidth, height: videoHeight };
       faceapi.matchDimensions(canvasRef.current, displaySize);
       const resizedDetections = faceapi.resizeResults(detections, displaySize);
@@ -196,73 +366,176 @@ const FaceDetection = () => {
       }
 
       // Update recognized name in UI
-      setRecognizedStudent(detectedName);
+      setRecognizedEmployee(detectedName);
 
-      // If recognized, mark attendance
-      if (detectedName !== "Unknown") {
-        markAttendance(detectedName);
+      // If recognized and not already marked attendance recently, mark attendance
+      if (detectedName !== "Unknown" && !isProcessingAttendance) {
+        const now = new Date().getTime();
+        const lastMark = lastAttendanceMark[detectedName] || 0;
+        const cooldownPeriod = 5 * 60 * 1000; // 5 minutes cooldown
+
+        // Only check attendance if enough time has passed
+        if (now - lastMark > cooldownPeriod) {
+          setIsProcessingAttendance(true);
+          // Find the employee ID from the name
+          const employee = registeredEmployees.find(e => e.name === detectedName);
+          
+          if (employee && employee._id) {
+            // Mark attendance
+            markAttendance(employee._id, detectedName);
+          } else {
+            console.error("Could not find employee ID for", detectedName);
+            setStatus("Error: Employee not found in database");
+            setIsProcessingAttendance(false);
+          }
+        }
       }
-    }, 2000);
+    }, 5000); // Increased interval to 5 seconds
+
+    // Cleanup function
+    return () => {
+      clearInterval(intervalId);
+    };
   };
 
-  // 7. Mark attendance for recognized student
-  const markAttendance = async (studentName) => {
-    try {
-      const student = registeredStudents.find((s) => s.name === studentName);
-      if (!student) return; // No match in our DB
+  // Add cleanup effect
+  useEffect(() => {
+    let cleanup;
+    if (videoRef.current) {
+      videoRef.current.onplay = async () => {
+        cleanup = await handleVideoOnPlay();
+      };
+    }
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [isModelLoaded, faceMatcher]);
 
-      await axios.post("http://localhost:5000/api/attendance", {
-        studentId: student._id,
-      });
-      console.log(`${studentName}'s attendance recorded.`);
+  // 7. Mark attendance for recognized employee
+  const markAttendance = async (employeeId, employeeName) => {
+    if (isProcessingAttendance) return;
+    setIsProcessingAttendance(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setStatus("Please login to mark attendance");
+        return;
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/api/attendance",
+        { employeeId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        setStatus(`${employeeName}'s attendance marked successfully!`);
+        setLastAttendanceMark(prev => ({
+          ...prev,
+          [employeeId]: new Date()
+        }));
+      } else if (response.status === 200 && response.data.message.includes('already marked')) {
+        setStatus(`${employeeName}'s attendance was already marked for today.`);
+      } else {
+        setStatus("Failed to mark attendance. Please try again.");
+      }
     } catch (error) {
       console.error("Error marking attendance:", error);
+      if (error.response?.status === 400) {
+        setStatus("Invalid request. Please try again.");
+      } else if (error.response?.status === 404) {
+        setStatus("Employee not found. Please register first.");
+      } else {
+        setStatus(error.response?.data?.message || "Error marking attendance");
+      }
+    } finally {
+      setIsProcessingAttendance(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 p-6">
-    <h1 className="text-3xl font-extrabold text-white mb-6 drop-shadow-lg">
-      Face Recognition System
-    </h1>
-  
-    {/* Registration Form */}
-    <div className="bg-white shadow-lg rounded-2xl p-6 mb-6 w-full max-w-md flex flex-col items-center">
-      <input
-        className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        type="text"
-        placeholder="Enter Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button 
-        onClick={handleRegister}
-        className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md"
-      >
-        Capture Face
-      </button>
+    <div className="face-detection-container">
+      <h1 className="face-detection-title">Face Recognition System</h1>
+
+      <div className="main-content">
+        {/* Left side: Registration Form */}
+        <div className="registration-form">
+          <input
+            className="registration-input"
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className="registration-input"
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="registration-input"
+            type="text"
+            placeholder="Department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+          />
+          <button 
+            className="capture-button" 
+            onClick={isCapturing ? captureFace : handleRegister}
+            disabled={isCapturing && !videoRef.current?.srcObject}
+          >
+            {isCapturing ? `Capture ${captureAngles[currentAngle]} View` : "Start Registration"}
+          </button>
+        </div>
+
+        {/* Right side: Camera and Detection */}
+        <div className="camera-section">
+          {/* Status Message */}
+          {status && (
+            <div className="status-message">
+              {status}
+            </div>
+          )}
+
+          {/* Video & Canvas */}
+          <div className="video-container">
+            <video
+              ref={videoRef}
+              autoPlay
+            />
+            <canvas ref={canvasRef} />
+          </div>
+
+          {/* Detected Name */}
+          <h2 className="detected-name">
+            Detected Employee: <span>{recognizedEmployee}</span>
+          </h2>
+        </div>
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="navigation-buttons">
+        <button 
+          className="nav-button" 
+          onClick={() => navigate('/dashboard')}
+        >
+          View Dashboard
+        </button>
+        <button 
+          className="nav-button" 
+          onClick={() => navigate('/employees')}
+        >
+          Manage Employees
+        </button>
+      </div>
     </div>
-  
-    {/* Video & Canvas */}
-    <div className="relative border-4 border-white rounded-lg overflow-hidden shadow-lg">
-      <video
-        ref={videoRef}
-        autoPlay
-        onPlay={handleVideoOnPlay}
-        className="rounded-lg"
-      />
-      <canvas
-        ref={canvasRef}
-        className="absolute left-0 top-0"
-      />
-    </div>
-  
-    {/* Detected Name */}
-    <h2 className="mt-6 text-xl font-semibold text-white bg-white bg-opacity-20 px-4 py-2 rounded-lg shadow-md">
-      Detected Student: <span className="text-yellow-300">{recognizedStudent}</span>
-    </h2>
-  </div>
-  
   );
 };
 

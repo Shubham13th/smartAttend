@@ -1,44 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from './utils/axios';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+import axios from 'axios';
+import DepartmentStats from './components/DepartmentStats';
 import './Dashboard.css';
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    attendanceRate: 0,
+    departmentStats: {}
+  });
+  const [registeredEmployees, setRegisteredEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [attendanceData, setAttendanceData] = useState(null);
-  const [timePeriod, setTimePeriod] = useState('week'); // 'week', 'month', 'year'
-  const [stats, setStats] = useState({
-    totalPresent: 0,
-    totalAbsent: 0,
-    attendanceRate: 0,
-    totalStudents: 0,
-  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,135 +23,96 @@ const Dashboard = () => {
       return;
     }
 
-    const fetchAttendanceData = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`/attendance?period=${timePeriod}`);
-        setAttendanceData(response.data);
-        calculateStats(response.data);
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to fetch attendance data');
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchEmployees();
+    fetchTodayAttendance();
+  }, [navigate]);
 
-    fetchAttendanceData();
-  }, [navigate, timePeriod]);
-
-  const calculateStats = (data) => {
-    if (!data) return;
-
-    const total = data.reduce((acc, day) => acc + day.total, 0);
-    const present = data.reduce((acc, day) => acc + day.present, 0);
-    const absent = data.reduce((acc, day) => acc + day.absent, 0);
-
-    setStats({
-      totalPresent: present,
-      totalAbsent: absent,
-      attendanceRate: total > 0 ? Math.round((present / total) * 100) : 0,
-      totalStudents: total,
-    });
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/employees', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setRegisteredEmployees(response.data);
+      
+      // Initialize department stats
+      const departmentStats = {};
+      response.data.forEach(emp => {
+        const dept = emp.department || 'Unassigned';
+        if (!departmentStats[dept]) {
+          departmentStats[dept] = { total: 0, present: 0, rate: 0 };
+        }
+        departmentStats[dept].total++;
+      });
+      
+      setStats(prev => ({ ...prev, departmentStats }));
+    } catch (err) {
+      setError('Failed to fetch employee data');
+      console.error('Error fetching employees:', err);
+    }
   };
 
-  const chartData = {
-    labels: attendanceData?.map(day => day.date) || [],
-    datasets: [
-      {
-        label: 'Present',
-        data: attendanceData?.map(day => day.present) || [],
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1,
-      },
-      {
-        label: 'Absent',
-        data: attendanceData?.map(day => day.absent) || [],
-        borderColor: 'rgb(255, 99, 132)',
-        tension: 0.1,
-      },
-    ],
+  const fetchTodayAttendance = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/attendance/today', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      const todayData = response.data;
+      const presentCount = todayData.filter(record => record.status === 'present').length;
+      const uniqueEmployees = new Set(todayData.map(record => record.employeeId)).size;
+      
+      // Update department stats with present counts
+      const updatedDepartmentStats = { ...stats.departmentStats };
+      todayData.forEach(record => {
+        const emp = registeredEmployees.find(e => e._id === record.employeeId);
+        if (emp) {
+          const dept = emp.department || 'Unassigned';
+          if (updatedDepartmentStats[dept]) {
+            updatedDepartmentStats[dept].present++;
+            updatedDepartmentStats[dept].rate = Math.round(
+              (updatedDepartmentStats[dept].present / updatedDepartmentStats[dept].total) * 100
+            );
+          }
+        }
+      });
+
+      setStats({
+        totalEmployees: uniqueEmployees,
+        presentToday: presentCount,
+        attendanceRate: Math.round((presentCount / uniqueEmployees) * 100) || 0,
+        departmentStats: updatedDepartmentStats
+      });
+    } catch (err) {
+      setError('Failed to fetch attendance data');
+      console.error('Error fetching attendance:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const doughnutData = {
-    labels: ['Present', 'Absent'],
-    datasets: [
-      {
-        data: [stats.totalPresent, stats.totalAbsent],
-        backgroundColor: ['rgb(75, 192, 192)', 'rgb(255, 99, 132)'],
-      },
-    ],
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: `Attendance Overview (${timePeriod})`,
-      },
-    },
-  };
-
-  if (loading) {
-    return (
-      <div className="dashboard">
-        <div className="loading">Loading dashboard data...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="dashboard">
-        <div className="error">
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <div className="time-period-toggle">
-          <button
-            className={timePeriod === 'week' ? 'active' : ''}
-            onClick={() => setTimePeriod('week')}
-          >
-            Week
-          </button>
-          <button
-            className={timePeriod === 'month' ? 'active' : ''}
-            onClick={() => setTimePeriod('month')}
-          >
-            Month
-          </button>
-          <button
-            className={timePeriod === 'year' ? 'active' : ''}
-            onClick={() => setTimePeriod('year')}
-          >
-            Year
-          </button>
-        </div>
-      </div>
+      <header className="dashboard-header">
+        <h1>Employee Attendance Dashboard</h1>
+        <button onClick={handleLogout} className="logout-btn">Logout</button>
+      </header>
 
-      <div className="stats-grid">
+      <div className="stats-container">
         <div className="stat-card">
-          <h3>Total Students</h3>
-          <p className="stat-value">{stats.totalStudents}</p>
+          <h3>Total Employees</h3>
+          <p className="stat-value">{stats.totalEmployees}</p>
         </div>
         <div className="stat-card">
           <h3>Present Today</h3>
-          <p className="stat-value">{stats.totalPresent}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Absent Today</h3>
-          <p className="stat-value">{stats.totalAbsent}</p>
+          <p className="stat-value">{stats.presentToday}</p>
         </div>
         <div className="stat-card">
           <h3>Attendance Rate</h3>
@@ -183,26 +120,14 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="charts-container">
-        <div className="chart-card">
-          <h2>Attendance Trend</h2>
-          <Line data={chartData} options={chartOptions} />
-        </div>
-        <div className="chart-card">
-          <h2>Attendance Distribution</h2>
-          <Doughnut data={doughnutData} options={chartOptions} />
-        </div>
-      </div>
+      <DepartmentStats stats={stats.departmentStats} />
 
-      <div className="quick-actions">
-        <button onClick={() => navigate('/face-detection')} className="action-button">
+      <div className="action-buttons">
+        <button onClick={() => navigate('/face-detection')} className="action-btn">
           Mark Attendance
         </button>
-        <button onClick={() => navigate('/students')} className="action-button">
-          Manage Students
-        </button>
-        <button onClick={() => navigate('/reports')} className="action-button">
-          Generate Report
+        <button onClick={() => navigate('/manage-employees')} className="action-btn">
+          Manage Employees
         </button>
       </div>
     </div>

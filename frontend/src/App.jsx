@@ -1,47 +1,56 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './components/Home';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './Dashboard';
-import FaceDetection from './FaceDetection';
-import './App.css';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
-  return children;
-};
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
+import Login from "./components/Login";
+import Dashboard from "./Dashboard";
+import FaceDetection from "./FaceDetection";
+import Employees from "./Employees";
+import Home from "./Home";
+import "./App.css";
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const token = localStorage.getItem("token");
+    return !!token;
+  });
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+  };
+
   return (
     <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/face-detection"
-            element={
-              <ProtectedRoute>
-                <FaceDetection />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
+          } 
+        />
+        <Route 
+          path="/face-detection" 
+          element={
+            isAuthenticated ? <FaceDetection /> : <Navigate to="/login" />
+          } 
+        />
+        <Route 
+          path="/employees" 
+          element={
+            isAuthenticated ? <Employees /> : <Navigate to="/login" />
+          } 
+        />
+      </Routes>
     </Router>
   );
 }

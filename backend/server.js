@@ -6,12 +6,12 @@ const jwt = require('jsonwebtoken');
 const verifyToken = require('./middleware/auth');
 require('dotenv').config();
 // Import Models
-const Student = require('./models/Student');
+const Employee = require('./models/Employee');
 const Attendance = require('./models/Attendance');
 const User = require('./models/User');
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
-const studentRoutes = require('./routes/studentRoutes');
+const employeeRoutes = require('./routes/employeeRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const app = express();
 
@@ -58,7 +58,7 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/students', studentRoutes);
+app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
 // Nodemailer Configuration
@@ -75,17 +75,17 @@ app.get('/api/secure-data', verifyToken, (req, res) => {
 });
 
 // Send Email Notification
-const sendNotification = async (studentEmail, message) => {
+const sendNotification = async (employeeEmail, message) => {
   try {
     const mailOptions = {
-      from: "pavanshirsat957@gmail.com",
-      to: studentEmail,
+      from: process.env.EMAIL_USER,
+      to: employeeEmail,
       subject: 'Attendance Notification',
       text: message,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`📧 Notification sent to ${studentEmail}`);
+    console.log(`📧 Notification sent to ${employeeEmail}`);
   } catch (error) {
     console.error('❌ Email sending failed:', error.message);
   }
@@ -96,7 +96,7 @@ app.get('/api/data', (req, res) => {
   res.json({ message: '📡 API is working' });
 });
 
-// ✅ Register Student
+// ✅ Register Employee
 app.post('/api/register', async (req, res) => {
   try {
     const { name, encoding } = req.body;
@@ -107,12 +107,12 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: '⚠️ Name and encoding are required' });
     }
 
-    const student = new Student({ name, encoding });
-    await student.save();
+    const employee = new Employee({ name, encoding });
+    await employee.save();
 
-    res.status(201).json({ message: '🎓 Student registered successfully', student });
+    res.status(201).json({ message: '👨‍💼 Employee registered successfully', employee });
   } catch (error) {
-    console.error('❌ Student registration failed:', error.message);
+    console.error('❌ Employee registration failed:', error.message);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
@@ -120,18 +120,22 @@ app.post('/api/register', async (req, res) => {
 // ✅ Mark Attendance
 app.post('/api/attendance', async (req, res) => {
   try {
-    const { studentId } = req.body;
+    const { employeeId } = req.body;
 
-    if (!studentId) {
-      return res.status(400).json({ error: '⚠️ Student ID is required' });
+    if (!employeeId) {
+      return res.status(400).json({ error: '⚠️ Employee ID is required' });
     }
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ error: '❌ Student not found' });
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ error: '❌ Employee not found' });
     }
 
-    const attendance = new Attendance({ studentId });
+    // Update lastAttendance timestamp
+    employee.lastAttendance = new Date();
+    await employee.save();
+
+    const attendance = new Attendance({ employeeId });
     await attendance.save();
 
     res.status(201).json({ message: '📌 Attendance marked successfully', attendance });
@@ -144,7 +148,9 @@ app.post('/api/attendance', async (req, res) => {
 // ✅ Fetch Attendance Records
 app.get('/api/attendance', async (req, res) => {
   try {
-    const attendanceRecords = await Attendance.find().populate('studentId', 'name');
+    const attendanceRecords = await Attendance.find()
+      .populate('employeeId', 'name email department position')
+      .sort({ date: -1 });
     res.status(200).json(attendanceRecords);
   } catch (error) {
     console.error('❌ Failed to fetch attendance:', error.message);
@@ -152,13 +158,13 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
-// ✅ Fetch All Students
-app.get('/api/students', async (req, res) => {
+// ✅ Fetch All Employees
+app.get('/api/employees', async (req, res) => {
   try {
-    const students = await Student.find();
-    res.status(200).json(students);
+    const employees = await Employee.find();
+    res.status(200).json(employees);
   } catch (error) {
-    console.error('❌ Failed to fetch students:', error.message);
+    console.error('❌ Failed to fetch employees:', error.message);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });

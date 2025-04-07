@@ -1,7 +1,8 @@
 .dashboard {
   padding: 2rem;
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
 }
 
 .dashboard-header {
@@ -9,139 +10,120 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dashboard-header h1 {
-  color: #2d3748;
   font-size: 2rem;
   margin: 0;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.time-period-toggle {
-  display: flex;
-  gap: 0.5rem;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.time-period-toggle button {
+.logout-btn {
   padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #4a5568;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  color: #fff;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-.time-period-toggle button.active {
-  background: #4299e1;
-  color: white;
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
-.stats-grid {
+.stats-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .stat-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
 }
 
 .stat-card h3 {
-  color: #4a5568;
-  font-size: 1rem;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .stat-value {
-  color: #2d3748;
   font-size: 2rem;
   font-weight: bold;
+  color: #fff;
   margin: 0;
 }
 
-.charts-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.chart-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.chart-card h2 {
-  color: #2d3748;
-  font-size: 1.25rem;
-  margin: 0 0 1rem 0;
-}
-
-.quick-actions {
+.action-buttons {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2rem;
 }
 
-.action-button {
-  padding: 0.75rem 1.5rem;
+.action-btn {
+  padding: 0.8rem 1.5rem;
+  background: #3498db;
   border: none;
-  border-radius: 4px;
-  background: #4299e1;
-  color: white;
-  font-weight: 500;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
 }
 
-.action-button:hover {
-  background: #3182ce;
+.action-btn:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
 }
 
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 400px;
-  font-size: 1.25rem;
-  color: #4a5568;
+  min-height: 100vh;
+  font-size: 1.2rem;
+  color: #fff;
 }
 
 .error {
-  background: #fff5f5;
-  color: #c53030;
-  padding: 1.5rem;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: #ff6b6b;
+  font-size: 1.2rem;
   text-align: center;
-  margin: 2rem auto;
-  max-width: 500px;
 }
 
 .error button {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background: #c53030;
-  color: white;
+  background: #ff6b6b;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
+  color: #fff;
   cursor: pointer;
 }
 
-.error button:hover {
-  background: #a53030;
-}
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
@@ -150,18 +132,18 @@
   .dashboard-header {
     flex-direction: column;
     gap: 1rem;
-    align-items: stretch;
+    text-align: center;
   }
 
-  .charts-container {
+  .stats-container {
     grid-template-columns: 1fr;
   }
 
-  .quick-actions {
+  .action-buttons {
     flex-direction: column;
   }
 
-  .action-button {
+  .action-btn {
     width: 100%;
   }
 } 

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import axios from 'axios';
-import './Auth.css';
+import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
-const Login = ({ onLogin }) => {
+const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +23,7 @@ const Login = ({ onLogin }) => {
 
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        onLogin();
+        setIsAuthenticated(true);
         navigate('/dashboard');
       } else {
         setError('Invalid response from server');
@@ -41,9 +41,9 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <h2>Login</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <h2>Login to SmartAttend</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -55,7 +55,6 @@ const Login = ({ onLogin }) => {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              placeholder="Enter your email"
             />
           </div>
           <div className="form-group">
@@ -67,16 +66,12 @@ const Login = ({ onLogin }) => {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
-              placeholder="Enter your password"
             />
           </div>
           <button type="submit" disabled={loading} className="login-button">
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        <div className="auth-link">
-          Don't have an account? <Link to="/register">Register</Link>
-        </div>
       </div>
     </div>
   );
