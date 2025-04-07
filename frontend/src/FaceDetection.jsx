@@ -454,29 +454,37 @@ const FaceDetection = () => {
         // If recognized and not already marked attendance recently, mark attendance
         if (detectedName !== "Unknown" && !isProcessingAttendance) {
           const now = new Date().getTime();
-          const lastMark = lastAttendanceMark[detectedName] || 0;
-          const cooldownPeriod = 5 * 60 * 1000; // 5 minutes cooldown
+          
+          // Check for employee in lastAttendanceMark by name
+          const employee = registeredEmployees.find(e => e.name === detectedName);
+          
+          if (!employee || !employee._id) {
+            console.error("Could not find employee ID for", detectedName);
+            setStatus("Error: Employee not found in database");
+            return;
+          }
+          
+          // Use employee ID for cooldown tracking instead of name
+          const lastMark = lastAttendanceMark[employee._id] || 0;
+          const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours cooldown
+          
+          console.log(`Time since last mark for ${detectedName}: ${(now - lastMark) / 60000} minutes`);
 
           // Only check attendance if enough time has passed
           if (now - lastMark > cooldownPeriod) {
             setIsProcessingAttendance(true);
-            // Find the employee ID from the name
-            const employee = registeredEmployees.find(e => e.name === detectedName);
             
-            if (employee && employee._id) {
-              // Mark attendance
-              markAttendance(employee._id, detectedName);
-            } else {
-              console.error("Could not find employee ID for", detectedName);
-              setStatus("Error: Employee not found in database");
-              setIsProcessingAttendance(false);
-            }
+            // Mark attendance
+            markAttendance(employee._id, detectedName);
+          } else if ((now - lastMark) < 60000) { // Less than a minute
+            // Show feedback that attendance was recently marked but don't process it
+            setStatus(`${detectedName}'s attendance was already marked recently.`);
           }
         }
       } catch (error) {
         console.error("Error in face detection loop:", error);
       }
-    }, 5000); // Increased interval to 5 seconds
+    }, 10000); // Increased interval to 10 seconds to reduce repeated detections
 
     // Cleanup function
     return () => {
@@ -506,6 +514,7 @@ const FaceDetection = () => {
       const token = localStorage.getItem('token');
       if (!token) {
         setStatus("Please login to mark attendance");
+        setIsProcessingAttendance(false);
         return;
       }
 
@@ -521,12 +530,26 @@ const FaceDetection = () => {
 
       if (response.status === 201) {
         setStatus(`${employeeName}'s attendance marked successfully!`);
+        // Store timestamp by employee ID instead of name
         setLastAttendanceMark(prev => ({
           ...prev,
-          [employeeId]: new Date()
+          [employeeId]: new Date().getTime()
         }));
+        
+        // Store refresh flag in localStorage to trigger dashboard refresh
+        localStorage.setItem('dashboardRefresh', Date.now().toString());
+        
+        // Add a slight delay to show success message before redirecting
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 3000);
       } else if (response.status === 200 && response.data.message.includes('already marked')) {
         setStatus(`${employeeName}'s attendance was already marked for today.`);
+        // Update the timestamp even for already marked attendance to prevent repeated attempts
+        setLastAttendanceMark(prev => ({
+          ...prev,
+          [employeeId]: new Date().getTime()
+        }));
       } else {
         setStatus("Failed to mark attendance. Please try again.");
       }

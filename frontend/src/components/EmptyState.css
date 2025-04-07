@@ -1,0 +1,89 @@
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+
+.empty-state-content {
+  max-width: 600px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-top: 4px solid #3498db;
+}
+
+.empty-state-content h2 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.company-welcome {
+  font-size: 1.1rem;
+  color: #3498db;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.empty-message {
+  font-size: 1rem;
+  color: #7f8c8d;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.primary-action {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.primary-action:hover {
+  background-color: #2980b9;
+}
+
+.secondary-action {
+  background-color: #ecf0f1;
+  color: #2c3e50;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.secondary-action:hover {
+  background-color: #d5dbdb;
+}
+
+@media (max-width: 768px) {
+  .empty-state {
+    padding: 1rem;
+  }
+  
+  .empty-actions {
+    flex-direction: column;
+  }
+  
+  .primary-action, 
+  .secondary-action {
+    width: 100%;
+  }
+} 

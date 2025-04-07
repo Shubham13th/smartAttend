@@ -59,7 +59,7 @@ const handleError = (res, error, message = 'Internal Server Error') => {
 // Register Route
 router.post('/register', async (req, res) => {
   console.log('Registration request received:', req.body);
-  const { name, email, password, companyId, companyName } = req.body;
+  const { name, email, password, companyName, companyId, role } = req.body;
   
   try {
     // Validate input
@@ -98,7 +98,7 @@ router.post('/register', async (req, res) => {
       throw hashError;
     }
     
-    // Determine company info
+    // Process company information
     let userCompanyId = companyId;
     let userCompanyName = companyName;
     
@@ -112,6 +112,11 @@ router.post('/register', async (req, res) => {
       userCompanyName = userCompanyId.charAt(0).toUpperCase() + userCompanyId.slice(1);
     }
 
+    console.log('Company information for registration:', {
+      companyId: userCompanyId,
+      companyName: userCompanyName
+    });
+
     // Create user
     let user;
     try {
@@ -120,7 +125,8 @@ router.post('/register', async (req, res) => {
         email, 
         password: hashedPassword,
         companyId: userCompanyId,
-        companyName: userCompanyName
+        companyName: userCompanyName,
+        role: role || 'admin'
       });
       console.log('User created successfully:', { userId: user._id, companyId: user.companyId });
     } catch (createError) {
@@ -138,7 +144,13 @@ router.post('/register', async (req, res) => {
       throw tokenError;
     }
 
-    console.log('User registered successfully:', { userId: user._id, email: user.email, companyId: user.companyId });
+    console.log('User registered successfully:', { 
+      userId: user._id, 
+      email: user.email, 
+      companyId: user.companyId,
+      companyName: user.companyName
+    });
+    
     res.status(201).json({ 
       message: '🎉 User registered successfully', 
       token,

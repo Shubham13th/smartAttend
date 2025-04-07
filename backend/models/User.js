@@ -24,33 +24,28 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Company ID is required'],
     trim: true,
-    default: function() {
-      // Generate a default companyId based on email domain if not provided
-      if (this.email) {
-        const domain = this.email.split('@')[1];
-        return domain ? domain.split('.')[0] : 'default';
-      }
-      return 'default';
-    }
+    index: true
   },
   companyName: {
     type: String,
-    trim: true,
-    default: function() {
-      return this.companyId ? this.companyId.charAt(0).toUpperCase() + this.companyId.slice(1) : 'Default Company';
-    }
+    required: [true, 'Company name is required'],
+    trim: true
   },
   role: { 
     type: String, 
     enum: {
-      values: ['admin', 'teacher', 'student'],
+      values: ['admin', 'manager', 'employee'],
       message: '{VALUE} is not a valid role'
     },
-    default: 'student' 
+    default: 'admin' 
   },
   createdAt: { 
     type: Date, 
     default: Date.now 
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true, // Adds createdAt and updatedAt timestamps
@@ -60,7 +55,7 @@ const userSchema = new mongoose.Schema({
 // Add an index on the email field to ensure uniqueness
 userSchema.index({ email: 1 }, { unique: true });
 
-// Compound index on companyId and email to ensure unique emails per company
+// Compound index on companyId and email to allow same email in different companies
 userSchema.index({ companyId: 1, email: 1 });
 
 // Pre-save hook for any additional processing
