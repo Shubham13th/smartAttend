@@ -17,14 +17,24 @@ const handleError = (res, error, message = 'Internal Server Error') => {
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { employeeId } = req.body;
+    const companyId = req.user.companyId;
 
     if (!employeeId) {
       return res.status(400).json({ error: '⚠️ Employee ID is required' });
     }
 
-    const employee = await Employee.findById(employeeId);
+    if (!companyId) {
+      return res.status(400).json({ error: '⚠️ Company ID is required' });
+    }
+
+    // Find employee and verify they belong to the user's company
+    const employee = await Employee.findOne({ 
+      _id: employeeId,
+      companyId 
+    });
+    
     if (!employee) {
-      return res.status(404).json({ error: '❌ Employee not found' });
+      return res.status(404).json({ error: '❌ Employee not found or not authorized to mark attendance' });
     }
 
     // Check if attendance already marked for today
@@ -35,6 +45,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     const existingAttendance = await Attendance.findOne({
       employeeId,
+      companyId,
       date: {
         $gte: today,
         $lt: tomorrow
@@ -48,8 +59,19 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    const attendance = new Attendance({ employeeId });
+    // Create attendance record with companyId
+    const attendance = new Attendance({ 
+      employeeId,
+      companyId 
+    });
+    
     await attendance.save();
+
+    // Update employee's last attendance timestamp
+    employee.lastAttendance = new Date();
+    await employee.save();
+
+    console.log(`Attendance marked for ${employee.name} (${employee.employeeId}) in company: ${companyId}`);
 
     res.status(201).json({ message: '📌 Attendance marked successfully', attendance });
   } catch (error) {
@@ -60,12 +82,21 @@ router.post('/', verifyToken, async (req, res) => {
 // Fetch Today's Attendance Records (Protected)
 router.get('/today', verifyToken, async (req, res) => {
   try {
+    const companyId = req.user.companyId;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: '⚠️ Company ID is required' });
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const attendanceRecords = await Attendance.find({
+      companyId,
       date: { $gte: today }
     }).populate('employeeId', 'name email department position');
+
+    console.log(`Fetched ${attendanceRecords.length} attendance records for today in company: ${companyId}`);
 
     res.status(200).json(attendanceRecords);
   } catch (error) {
@@ -76,9 +107,18 @@ router.get('/today', verifyToken, async (req, res) => {
 // Fetch All Attendance Records (Protected)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const attendanceRecords = await Attendance.find()
+    const companyId = req.user.companyId;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: '⚠️ Company ID is required' });
+    }
+    
+    const attendanceRecords = await Attendance.find({ companyId })
       .populate('employeeId', 'name email department position')
       .sort({ date: -1 });
+      
+    console.log(`Fetched ${attendanceRecords.length} attendance records for company: ${companyId}`);
+    
     res.status(200).json(attendanceRecords);
   } catch (error) {
     handleError(res, error, 'Failed to fetch attendance');

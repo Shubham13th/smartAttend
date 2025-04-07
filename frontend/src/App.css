@@ -1,3 +1,62 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 1.25rem;
+  color: #667eea;
+  background-color: #f7fafc;
+}
+
+.loading::after {
+  content: '';
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: 0.5rem;
+  border: 2px solid #cbd5e0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: loading 0.8s linear infinite;
+}
+
+@keyframes loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide header and footer on login/register pages */
+body:has(.login-container) .app-header,
+body:has(.login-container) .app-footer,
+body:has(.register-container) .app-header,
+body:has(.register-container) .app-footer {
+  display: none;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;

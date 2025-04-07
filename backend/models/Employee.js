@@ -29,6 +29,11 @@ const employeeSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  companyId: {
+    type: String,
+    required: true,
+    trim: true
+  },
   encoding: {
     type: Array,
     required: true
@@ -53,6 +58,13 @@ employeeSchema.index({ email: 1 });
 employeeSchema.index({ employeeId: 1 });
 employeeSchema.index({ department: 1 });
 employeeSchema.index({ isActive: 1 });
+employeeSchema.index({ companyId: 1 });
+
+// Compound unique index for email within a company
+employeeSchema.index({ companyId: 1, email: 1 }, { unique: true });
+
+// Compound unique index for employeeId within a company
+employeeSchema.index({ companyId: 1, employeeId: 1 }, { unique: true });
 
 const Employee = mongoose.model('Employee', employeeSchema);
 

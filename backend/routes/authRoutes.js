@@ -8,17 +8,47 @@ require('dotenv').config();
 
 // Generate JWT Token
 const generateToken = (userId) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined in environment variables');
+  // Check if JWT_SECRET is defined
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('JWT_SECRET is not defined in environment variables');
+    // Fallback to a default secret in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Using fallback secret - THIS IS INSECURE FOR PRODUCTION');
+      const fallbackSecret = 'fallback_jwt_secret_only_for_development';
+      return jwt.sign({ id: userId }, fallbackSecret, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+      });
+    } else {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
   }
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-  });
+  
+  try {
+    return jwt.sign({ id: userId }, jwtSecret, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    });
+  } catch (error) {
+    console.error('Error generating JWT token:', error);
+    throw error;
+  }
 };
 
 // Error Handler
 const handleError = (res, error, message = 'Internal Server Error') => {
   console.error(`❌ ${message}:`, error);
+  console.error('Error Stack:', error.stack);
+  
+  // Additional logging for specific error types
+  if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+    console.error('MongoDB Error Code:', error.code);
+    console.error('MongoDB Error Message:', error.message);
+  }
+  
+  if (error.name === 'ValidationError') {
+    console.error('Validation Error Details:', error.errors);
+  }
+  
   res.status(500).json({ 
     error: message, 
     details: error.message,
@@ -29,7 +59,7 @@ const handleError = (res, error, message = 'Internal Server Error') => {
 // Register Route
 router.post('/register', async (req, res) => {
   console.log('Registration request received:', req.body);
-  const { name, email, password } = req.body;
+  const { name, email, password, companyId, companyName } = req.body;
   
   try {
     // Validate input
@@ -44,26 +74,71 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    let userExists;
+    try {
+      userExists = await User.findOne({ email });
+      console.log('Existing user check:', userExists ? 'User found' : 'User not found');
+    } catch (findError) {
+      console.error('Error checking existing user:', findError);
+      throw findError;
+    }
+    
     if (userExists) {
       return res.status(400).json({ error: '⚠️ User already exists' });
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    let hashedPassword;
+    try {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+      console.log('Password hashed successfully');
+    } catch (hashError) {
+      console.error('Error hashing password:', hashError);
+      throw hashError;
+    }
+    
+    // Determine company info
+    let userCompanyId = companyId;
+    let userCompanyName = companyName;
+    
+    // If company info not provided, derive from email
+    if (!userCompanyId) {
+      const domain = email.split('@')[1];
+      userCompanyId = domain ? domain.split('.')[0] : 'default';
+    }
+    
+    if (!userCompanyName) {
+      userCompanyName = userCompanyId.charAt(0).toUpperCase() + userCompanyId.slice(1);
+    }
 
     // Create user
-    const user = await User.create({ 
-      name, 
-      email, 
-      password: hashedPassword 
-    });
+    let user;
+    try {
+      user = await User.create({ 
+        name, 
+        email, 
+        password: hashedPassword,
+        companyId: userCompanyId,
+        companyName: userCompanyName
+      });
+      console.log('User created successfully:', { userId: user._id, companyId: user.companyId });
+    } catch (createError) {
+      console.error('Error creating user:', createError);
+      throw createError;
+    }
 
     // Generate token
-    const token = generateToken(user._id);
+    let token;
+    try {
+      token = generateToken(user._id);
+      console.log('Token generated successfully');
+    } catch (tokenError) {
+      console.error('Error generating token:', tokenError);
+      throw tokenError;
+    }
 
-    console.log('User registered successfully:', { userId: user._id, email: user.email });
+    console.log('User registered successfully:', { userId: user._id, email: user.email, companyId: user.companyId });
     res.status(201).json({ 
       message: '🎉 User registered successfully', 
       token,
@@ -71,7 +146,9 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        companyId: user.companyId,
+        companyName: user.companyName
       }
     });
   } catch (error) {
@@ -101,7 +178,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = generateToken(user._id);
-    console.log('User logged in successfully:', { userId: user._id, email: user.email });
+    console.log('User logged in successfully:', { userId: user._id, email: user.email, companyId: user.companyId });
     
     res.status(200).json({ 
       message: '✅ Login successful', 
@@ -110,7 +187,9 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        companyId: user.companyId,
+        companyName: user.companyName
       }
     });
   } catch (error) {

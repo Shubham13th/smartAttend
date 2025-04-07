@@ -31,30 +31,79 @@ app.use((req, res, next) => {
 // MongoDB Connection with retry logic
 const connectDB = async () => {
   try {
+    console.log('Connecting to MongoDB...');
+    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'URI is defined' : 'URI is NOT defined');
+    
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
+    
     console.log('✅ MongoDB Connected:', conn.connection.host);
+    console.log('Database Name:', conn.connection.name);
     
     // Test User model
     try {
-      await User.findOne({});
-      console.log('✅ User model is working');
+      const count = await User.estimatedDocumentCount();
+      console.log(`✅ User model is working. Found ${count} users.`);
+      
+      // Validate indexes - important for unique constraints
+      const indexes = await User.collection.indexes();
+      console.log('User collection indexes:', JSON.stringify(indexes));
     } catch (err) {
       console.error('❌ User model error:', err);
+      console.error('Error Stack:', err.stack);
       throw err;
     }
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err);
+    console.error('Error Stack:', err.stack);
+    
+    if (err.name === 'MongoParseError') {
+      console.error('Check your MongoDB connection string - it appears to be malformed');
+    } else if (err.name === 'MongoServerSelectionError') {
+      console.error('Could not connect to MongoDB server. Make sure MongoDB is running.');
+    }
+    
     // Retry connection after 5 seconds
+    console.log('Retrying connection in 5 seconds...');
     setTimeout(connectDB, 5000);
   }
 };
 
-connectDB();
+// Fix database indexes
+const fixUserIndexes = async () => {
+  try {
+    console.log('Checking for problematic indexes...');
+    const db = mongoose.connection;
+    
+    // Wait for MongoDB connection
+    if (db.readyState !== 1) {
+      await new Promise(resolve => {
+        db.once('open', resolve);
+      });
+    }
+    
+    // Drop the problematic username index
+    try {
+      await db.collection('users').dropIndex('username_1');
+      console.log('✅ Successfully dropped problematic username index');
+    } catch (err) {
+      // Ignore if index doesn't exist
+      console.log('Note: username_1 index not found or already dropped');
+    }
+    
+    console.log('Database indexes check completed');
+  } catch (error) {
+    console.error('Error fixing indexes:', error);
+  }
+};
+
+connectDB()
+  .then(() => fixUserIndexes())
+  .catch(err => console.error('Failed to initialize:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);

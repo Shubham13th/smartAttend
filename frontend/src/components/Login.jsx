@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import axios from 'axios';
-import './Auth.css';
+import './Login.css';
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
@@ -20,20 +21,31 @@ const Login = ({ onLogin }) => {
         email,
         password
       });
-
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        onLogin();
-        navigate('/dashboard');
-      } else {
-        setError('Invalid response from server');
+      
+      console.log('Login successful:', response.data);
+      
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.token);
+      
+      // Store user data in localStorage
+      if (response.data.user) {
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        console.log('User data stored in localStorage:', response.data.user);
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      if (error.response?.status === 401) {
+      
+      onLogin();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Login error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message
+      });
+      if (err.response?.status === 401) {
         setError('Invalid email or password');
       } else {
-        setError(error.response?.data?.message || 'Login failed. Please try again.');
+        setError(err.response?.data?.message || 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -41,9 +53,9 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <h2>Login</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <h2>Login to SmartAttend</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -75,11 +87,15 @@ const Login = ({ onLogin }) => {
           </button>
         </form>
         <div className="auth-link">
-          Don't have an account? <Link to="/register">Register</Link>
+          Don&apos;t have an account? <Link to="/register">Register</Link>
         </div>
       </div>
     </div>
   );
+};
+
+Login.propTypes = {
+  onLogin: PropTypes.func.isRequired
 };
 
 export default Login; 

@@ -21,8 +21,19 @@ const handleError = (res, error, message = 'Internal Server Error') => {
 // Get All Employees with Face Encodings (Protected)
 router.get('/with-encodings', verifyToken, async (req, res) => {
   try {
-    const employees = await Employee.find()
+    const companyId = req.user.companyId;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+    
+    console.log(`Fetching employees with encodings for company: ${companyId}`);
+    
+    const employees = await Employee.find({ companyId })
       .sort({ name: 1 });
+      
+    console.log(`Found ${employees.length} employees with encodings for company: ${companyId}`);
+    
     res.status(200).json(employees);
   } catch (error) {
     handleError(res, error, 'Failed to fetch employees with encodings');
@@ -32,9 +43,20 @@ router.get('/with-encodings', verifyToken, async (req, res) => {
 // Get All Employees (Protected)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const employees = await Employee.find()
+    const companyId = req.user.companyId;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+    
+    console.log(`Fetching employees for company: ${companyId}`);
+    
+    const employees = await Employee.find({ companyId })
       .select('-encoding') // Exclude face encoding from response
       .sort({ name: 1 });
+      
+    console.log(`Found ${employees.length} employees for company: ${companyId}`);
+    
     res.status(200).json(employees);
   } catch (error) {
     handleError(res, error, 'Failed to fetch employees');
@@ -45,19 +67,25 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/register', verifyToken, async (req, res) => {
   try {
     const { name, email, department, position, encoding } = req.body;
+    const companyId = req.user.companyId;
 
     if (!name || !email || !encoding) {
       return res.status(400).json({ error: 'Name, email, and face encoding are required' });
     }
 
-    // Check if employee with same email already exists
-    const existingEmployee = await Employee.findOne({ email });
-    if (existingEmployee) {
-      return res.status(409).json({ error: 'Employee with this email already exists' });
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
     }
 
-    // Generate employee ID
-    const employeeId = `EMP${Date.now().toString().slice(-6)}`;
+    // Check if employee with same email already exists in this company
+    const existingEmployee = await Employee.findOne({ email, companyId });
+    if (existingEmployee) {
+      return res.status(409).json({ error: 'Employee with this email already exists in your company' });
+    }
+
+    // Generate employee ID with company prefix
+    const companyPrefix = companyId.substring(0, 3).toUpperCase();
+    const employeeId = `${companyPrefix}${Date.now().toString().slice(-6)}`;
 
     const employee = new Employee({
       name,
@@ -65,11 +93,14 @@ router.post('/register', verifyToken, async (req, res) => {
       department: department || 'Unassigned',
       position: position || 'Employee',
       employeeId,
+      companyId,
       encoding,
       lastAttendance: null
     });
 
     await employee.save();
+
+    console.log(`Employee ${name} (${employeeId}) registered for company: ${companyId}`);
 
     res.status(201).json({
       message: 'Employee registered successfully',
@@ -79,7 +110,8 @@ router.post('/register', verifyToken, async (req, res) => {
         email: employee.email,
         department: employee.department,
         position: employee.position,
-        employeeId: employee.employeeId
+        employeeId: employee.employeeId,
+        companyId: employee.companyId
       }
     });
   } catch (error) {
@@ -90,11 +122,17 @@ router.post('/register', verifyToken, async (req, res) => {
 // Get Employee by ID (Protected)
 router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id)
-      .select('-encoding'); // Exclude face encoding from response
+    const companyId = req.user.companyId;
+    
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      companyId // Ensure employee belongs to user's company
+    }).select('-encoding'); // Exclude face encoding from response
+    
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ error: 'Employee not found or not authorized to access' });
     }
+    
     res.status(200).json(employee);
   } catch (error) {
     handleError(res, error, 'Failed to fetch employee');
@@ -105,10 +143,15 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { name, email, department, position } = req.body;
-    const employee = await Employee.findById(req.params.id);
+    const companyId = req.user.companyId;
+    
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      companyId // Ensure employee belongs to user's company
+    });
     
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ error: 'Employee not found or not authorized to update' });
     }
 
     // Update fields if provided
@@ -118,6 +161,9 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (position) employee.position = position;
 
     await employee.save();
+    
+    console.log(`Employee ${employee.name} (${employee.employeeId}) updated for company: ${companyId}`);
+    
     res.status(200).json({ message: 'Employee updated successfully', employee });
   } catch (error) {
     handleError(res, error, 'Failed to update employee');
@@ -127,11 +173,21 @@ router.put('/:id', verifyToken, async (req, res) => {
 // Delete Employee (Protected)
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const companyId = req.user.companyId;
+    
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      companyId // Ensure employee belongs to user's company
+    });
+    
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ error: 'Employee not found or not authorized to delete' });
     }
+    
     await employee.deleteOne();
+    
+    console.log(`Employee ${employee.name} (${employee.employeeId}) deleted from company: ${companyId}`);
+    
     res.status(200).json({ message: 'Employee deleted successfully' });
   } catch (error) {
     handleError(res, error, 'Failed to delete employee');

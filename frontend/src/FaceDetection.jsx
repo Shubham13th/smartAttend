@@ -16,6 +16,25 @@ const FaceDetection = () => {
     "Up",
     "Down"
   ];
+  
+  // Add departments array
+  const departments = [
+    "Frontend Developer",
+    "Backend Developer",
+    "Full Stack Developer",
+    "Mobile App Developer (Android/iOS)",
+    "Software Engineer / Developer",
+    "DevOps Engineer",
+    "QA Engineer / Tester",
+    "UI/UX Designer",
+    "Data Analyst",
+    "Data Scientist",
+    "Machine Learning Engineer",
+    "AI Engineer",
+    "Cloud Engineer",
+    "Technical Support Engineer"
+  ];
+  
   const [currentAngle, setCurrentAngle] = useState(0);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [faceMatcher, setFaceMatcher] = useState(null);
@@ -101,6 +120,13 @@ const FaceDetection = () => {
         const employeesWithEncodings = response.data.filter(emp => emp.encoding && emp.encoding.length === 128);
         console.log("Employees with valid encodings:", employeesWithEncodings.length);
         setRegisteredEmployees(employeesWithEncodings);
+        
+        // If no employees with encodings, show a more user-friendly message
+        if (employeesWithEncodings.length === 0) {
+          setStatus("No employees with face data found. Please register employees first.");
+        } else {
+          setStatus("");
+        }
       } else {
         console.error("Invalid response format:", response.data);
         setStatus("Error: Invalid response format from server");
@@ -217,6 +243,20 @@ const FaceDetection = () => {
         angle: captureAngles[currentAngle]
       };
 
+      // Get user data from localStorage if available
+      const userDataString = localStorage.getItem('userData');
+      if (userDataString) {
+        try {
+          const userData = JSON.parse(userDataString);
+          if (userData.companyId) {
+            console.log(`Adding employee to company: ${userData.companyId}`);
+            employeeData.companyId = userData.companyId;
+          }
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+
       // Try employees endpoint first, fallback to students if needed
       let response;
       try {
@@ -269,9 +309,16 @@ const FaceDetection = () => {
 
   // Build FaceMatcher from registered employees
   const initializeFaceMatcher = () => {
-    if (!isModelLoaded || registeredEmployees.length === 0) {
-      console.warn("FaceMatcher not initialized: Models not loaded or no registered employees.");
+    if (!isModelLoaded) {
+      console.warn("FaceMatcher not initialized: Models not loaded yet.");
       setFaceMatcher(null);
+      return;
+    }
+    
+    if (registeredEmployees.length === 0) {
+      console.warn("FaceMatcher not initialized: No registered employees.");
+      setFaceMatcher(null);
+      setStatus(status => status || "No registered employees found. Please register employees first.");
       return;
     }
 
@@ -293,102 +340,141 @@ const FaceDetection = () => {
       if (labeledDescriptors.length === 0) {
         console.error("Error: No valid labeled face descriptors found.");
         setFaceMatcher(null);
+        setStatus("No valid face data found. Please re-register employees.");
         return;
       }
 
       const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
       setFaceMatcher(matcher);
+      console.log("FaceMatcher initialized successfully with", labeledDescriptors.length, "employees");
     } catch (error) {
       console.error("Error initializing FaceMatcher:", error);
+      setStatus("Error initializing face recognition. Please refresh the page.");
     }
   };
 
   // Whenever we get new employees or load models, re-initialize the matcher
   useEffect(() => {
-    initializeFaceMatcher();
+    if (isModelLoaded && registeredEmployees.length > 0) {
+      initializeFaceMatcher();
+    }
   }, [registeredEmployees, isModelLoaded]);
 
   // Handle video playing: set up detection loop
   const handleVideoOnPlay = async () => {
-    if (!isModelLoaded || !faceMatcher) return;
+    if (!isModelLoaded) {
+      setStatus("Face recognition models are still loading. Please wait...");
+      return;
+    }
+    
+    if (!faceMatcher) {
+      // Don't show error here as initializeFaceMatcher already sets status
+      return;
+    }
 
     // Store interval ID for cleanup
     const intervalId = setInterval(async () => {
-      if (!videoRef.current || !canvasRef.current) return;
+      if (!videoRef.current || !canvasRef.current) {
+        console.log("Video or canvas reference is not available");
+        return;
+      }
 
       // Use actual video dimensions to align bounding boxes correctly
       const videoWidth = videoRef.current.videoWidth;
       const videoHeight = videoRef.current.videoHeight;
 
+      if (videoWidth === 0 || videoHeight === 0) {
+        console.log("Video dimensions not ready");
+        return;
+      }
+
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
 
-      // Detect faces
-      const detections = await faceapi
-        .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+      try {
+        // Detect faces
+        const detections = await faceapi
+          .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptors();
 
-      // Resize to match video's size
-      const displaySize = { width: videoWidth, height: videoHeight };
-      faceapi.matchDimensions(canvasRef.current, displaySize);
-      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        // Make sure canvas is still in the DOM before continuing
+        if (!canvasRef.current) {
+          console.log("Canvas reference lost during face detection");
+          return;
+        }
 
-      // Clear previous drawings
-      const ctx = canvasRef.current.getContext("2d");
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        // Resize to match video's size
+        const displaySize = { width: videoWidth, height: videoHeight };
+        faceapi.matchDimensions(canvasRef.current, displaySize);
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
-      // Draw bounding boxes & landmarks
-      faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
-      faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+        // Clear previous drawings
+        const ctx = canvasRef.current.getContext("2d");
+        if (!ctx) {
+          console.log("Canvas context not available");
+          return;
+        }
+        
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-      let detectedName = "Unknown";
+        // Draw bounding boxes & landmarks
+        faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+        faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
 
-      if (faceMatcher) {
-        resizedDetections.forEach((detection) => {
-          // Check if descriptor is valid
-          if (!detection.descriptor || detection.descriptor.length !== 128) {
-            console.warn("Invalid face descriptor detected, skipping...");
-            return;
-          }
+        let detectedName = "Unknown";
 
-          // Find best match
-          const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-          detectedName = bestMatch.label;
+        if (faceMatcher) {
+          resizedDetections.forEach((detection) => {
+            // Check if descriptor is valid
+            if (!detection.descriptor || detection.descriptor.length !== 128) {
+              console.warn("Invalid face descriptor detected, skipping...");
+              return;
+            }
 
-          // Draw a labeled box
-          const { box } = detection.detection;
-          const drawBox = new faceapi.draw.DrawBox(box, {
-            label: bestMatch.toString(),
+            // Find best match
+            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+            detectedName = bestMatch.label;
+
+            // Make sure canvas is still in the DOM before drawing
+            if (!canvasRef.current) return;
+
+            // Draw a labeled box
+            const { box } = detection.detection;
+            const drawBox = new faceapi.draw.DrawBox(box, {
+              label: bestMatch.toString(),
+            });
+            drawBox.draw(canvasRef.current);
           });
-          drawBox.draw(canvasRef.current);
-        });
-      }
+        }
 
-      // Update recognized name in UI
-      setRecognizedEmployee(detectedName);
+        // Update recognized name in UI
+        setRecognizedEmployee(detectedName);
 
-      // If recognized and not already marked attendance recently, mark attendance
-      if (detectedName !== "Unknown" && !isProcessingAttendance) {
-        const now = new Date().getTime();
-        const lastMark = lastAttendanceMark[detectedName] || 0;
-        const cooldownPeriod = 5 * 60 * 1000; // 5 minutes cooldown
+        // If recognized and not already marked attendance recently, mark attendance
+        if (detectedName !== "Unknown" && !isProcessingAttendance) {
+          const now = new Date().getTime();
+          const lastMark = lastAttendanceMark[detectedName] || 0;
+          const cooldownPeriod = 5 * 60 * 1000; // 5 minutes cooldown
 
-        // Only check attendance if enough time has passed
-        if (now - lastMark > cooldownPeriod) {
-          setIsProcessingAttendance(true);
-          // Find the employee ID from the name
-          const employee = registeredEmployees.find(e => e.name === detectedName);
-          
-          if (employee && employee._id) {
-            // Mark attendance
-            markAttendance(employee._id, detectedName);
-          } else {
-            console.error("Could not find employee ID for", detectedName);
-            setStatus("Error: Employee not found in database");
-            setIsProcessingAttendance(false);
+          // Only check attendance if enough time has passed
+          if (now - lastMark > cooldownPeriod) {
+            setIsProcessingAttendance(true);
+            // Find the employee ID from the name
+            const employee = registeredEmployees.find(e => e.name === detectedName);
+            
+            if (employee && employee._id) {
+              // Mark attendance
+              markAttendance(employee._id, detectedName);
+            } else {
+              console.error("Could not find employee ID for", detectedName);
+              setStatus("Error: Employee not found in database");
+              setIsProcessingAttendance(false);
+            }
           }
         }
+      } catch (error) {
+        console.error("Error in face detection loop:", error);
       }
     }, 5000); // Increased interval to 5 seconds
 
@@ -479,13 +565,19 @@ const FaceDetection = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
+          <select
             className="registration-input"
-            type="text"
-            placeholder="Department"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-          />
+            required
+          >
+            <option value="" disabled>Select Department</option>
+            {departments.map((dept, index) => (
+              <option key={index} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
           <button 
             className="capture-button" 
             onClick={isCapturing ? captureFace : handleRegister}

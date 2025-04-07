@@ -1,42 +1,52 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import './Home.css';
 
-const Home = () => {
+const Home = ({ isAuthenticated, onLogout }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/');
+  };
+
   return (
     <div className="home-container">
-      <div className="home-content">
-        <h1>Welcome to SmartAttend</h1>
-        <p className="subtitle">Smart Attendance System using Face Recognition</p>
-        
-        <div className="features">
-          <div className="feature-card">
-            <h3>Face Recognition</h3>
-            <p>Advanced face detection and recognition technology for accurate attendance tracking</p>
-          </div>
-          
-          <div className="feature-card">
-            <h3>Real-time Tracking</h3>
-            <p>Instant attendance marking and monitoring system</p>
-          </div>
-          
-          <div className="feature-card">
-            <h3>Easy Management</h3>
-            <p>Simple and intuitive interface for managing student attendance</p>
+      {/* Main Content */}
+      <main className="main-content">
+        <div className="hero-section">
+          <h2>Welcome to SmartAttend</h2>
+          <p>Smart Attendance System using Face Recognition</p>
+          <div className="cta-buttons">
+            {isAuthenticated ? (
+              <>
+                <button onClick={() => navigate('/face-detection')} className="cta-button">
+                  Start Face Detection
+                </button>
+                <button onClick={() => navigate('/dashboard')} className="cta-button secondary">
+                  View Dashboard
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => navigate('/login')} className="cta-button">
+                  Login
+                </button>
+                <button onClick={() => navigate('/register')} className="cta-button secondary">
+                  Register
+                </button>
+              </>
+            )}
           </div>
         </div>
-
-        <div className="cta-buttons">
-          <Link to="/login" className="cta-button primary">
-            Login
-          </Link>
-          <Link to="/register" className="cta-button secondary">
-            Register
-          </Link>
-        </div>
-      </div>
+      </main>
     </div>
   );
+};
+
+Home.propTypes = {
+  isAuthenticated: PropTypes.bool.isRequired,
+  onLogout: PropTypes.func.isRequired
 };
 
 export default Home; 
