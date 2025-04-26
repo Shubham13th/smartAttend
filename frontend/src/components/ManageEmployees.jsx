@@ -113,7 +113,7 @@ const ManageEmployees = () => {
   return (
     <div className="manage-employees">
       <h1>Manage Employees</h1>
-      
+
       <div className="employees-list">
         {employees.length === 0 ? (
           <p className="no-employees">No employees found. Register employees using the Face Detection feature.</p>
