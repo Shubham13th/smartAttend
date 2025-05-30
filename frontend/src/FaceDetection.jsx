@@ -213,14 +213,14 @@ const FaceDetection = () => {
       }
 
       setStatus("Detecting face...");
-      
-      const detections = await faceapi
-        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
+
+    const detections = await faceapi
+      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
         .withFaceDescriptor()
         .withFaceExpressions();
 
-      if (!detections || !detections.descriptor) {
+    if (!detections || !detections.descriptor) {
         setStatus("No face detected. Please position your face clearly in the frame.");
         return;
       }
@@ -229,17 +229,17 @@ const FaceDetection = () => {
       const isLivenessValid = await checkLiveness([detections]);
       if (!isLivenessValid) {
         setStatus("Liveness check failed. Please ensure you are a real person.");
-        return;
-      }
+      return;
+    }
 
       setStatus("Processing face data...");
 
       // Store the face descriptor
       const employeeData = {
-        name,
+      name,
         email,
         department,
-        encoding: Array.from(detections.descriptor),
+      encoding: Array.from(detections.descriptor),
         angle: captureAngles[currentAngle]
       };
 
@@ -284,7 +284,7 @@ const FaceDetection = () => {
           setStatus(`${name} registered successfully!`);
           setIsCapturing(false);
           setCurrentAngle(0);
-          setName("");
+      setName("");
           setEmail("");
           setDepartment("");
           fetchRegisteredEmployees();
@@ -356,7 +356,7 @@ const FaceDetection = () => {
   // Whenever we get new employees or load models, re-initialize the matcher
   useEffect(() => {
     if (isModelLoaded && registeredEmployees.length > 0) {
-      initializeFaceMatcher();
+    initializeFaceMatcher();
     }
   }, [registeredEmployees, isModelLoaded]);
 
@@ -392,11 +392,11 @@ const FaceDetection = () => {
       canvasRef.current.height = videoHeight;
 
       try {
-        // Detect faces
-        const detections = await faceapi
-          .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks()
-          .withFaceDescriptors();
+      // Detect faces
+      const detections = await faceapi
+        .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptors();
 
         // Make sure canvas is still in the DOM before continuing
         if (!canvasRef.current) {
@@ -405,50 +405,50 @@ const FaceDetection = () => {
         }
 
         // Resize to match video's size
-        const displaySize = { width: videoWidth, height: videoHeight };
-        faceapi.matchDimensions(canvasRef.current, displaySize);
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+      const displaySize = { width: videoWidth, height: videoHeight };
+      faceapi.matchDimensions(canvasRef.current, displaySize);
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
-        // Clear previous drawings
-        const ctx = canvasRef.current.getContext("2d");
+      // Clear previous drawings
+      const ctx = canvasRef.current.getContext("2d");
         if (!ctx) {
           console.log("Canvas context not available");
           return;
         }
         
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-        // Draw bounding boxes & landmarks
-        faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
-        faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+      // Draw bounding boxes & landmarks
+      faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+      faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
 
-        let detectedName = "Unknown";
+      let detectedName = "Unknown";
 
-        if (faceMatcher) {
-          resizedDetections.forEach((detection) => {
-            // Check if descriptor is valid
-            if (!detection.descriptor || detection.descriptor.length !== 128) {
-              console.warn("Invalid face descriptor detected, skipping...");
-              return;
-            }
+      if (faceMatcher) {
+        resizedDetections.forEach((detection) => {
+          // Check if descriptor is valid
+          if (!detection.descriptor || detection.descriptor.length !== 128) {
+            console.warn("Invalid face descriptor detected, skipping...");
+            return;
+          }
 
-            // Find best match
-            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-            detectedName = bestMatch.label;
+          // Find best match
+          const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+          detectedName = bestMatch.label;
 
             // Make sure canvas is still in the DOM before drawing
             if (!canvasRef.current) return;
 
-            // Draw a labeled box
-            const { box } = detection.detection;
-            const drawBox = new faceapi.draw.DrawBox(box, {
-              label: bestMatch.toString(),
-            });
-            drawBox.draw(canvasRef.current);
+          // Draw a labeled box
+          const { box } = detection.detection;
+          const drawBox = new faceapi.draw.DrawBox(box, {
+            label: bestMatch.toString(),
           });
-        }
+          drawBox.draw(canvasRef.current);
+        });
+      }
 
-        // Update recognized name in UI
+      // Update recognized name in UI
         setRecognizedEmployee(detectedName);
 
         // If recognized and not already marked attendance recently, mark attendance
@@ -574,13 +574,13 @@ const FaceDetection = () => {
       <div className="main-content">
         {/* Left side: Registration Form */}
         <div className="registration-form">
-          <input
+      <input
             className="registration-input"
-            type="text"
+        type="text"
             placeholder="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
           <input
             className="registration-input"
             type="email"
@@ -601,14 +601,14 @@ const FaceDetection = () => {
               </option>
             ))}
           </select>
-          <button 
+      <button 
             className="capture-button" 
             onClick={isCapturing ? captureFace : handleRegister}
             disabled={isCapturing && !videoRef.current?.srcObject}
-          >
+      >
             {isCapturing ? `Capture ${captureAngles[currentAngle]} View` : "Start Registration"}
-          </button>
-        </div>
+      </button>
+    </div>
 
         {/* Right side: Camera and Detection */}
         <div className="camera-section">
@@ -618,23 +618,23 @@ const FaceDetection = () => {
               {status}
             </div>
           )}
-
-          {/* Video & Canvas */}
+  
+    {/* Video & Canvas */}
           <div className="video-container">
-            <video
-              ref={videoRef}
-              autoPlay
-            />
+      <video
+        ref={videoRef}
+        autoPlay
+      />
             <canvas ref={canvasRef} />
-          </div>
-
-          {/* Detected Name */}
+    </div>
+  
+    {/* Detected Name */}
           <h2 className="detected-name">
             Detected Employee: <span>{recognizedEmployee}</span>
-          </h2>
+    </h2>
         </div>
-      </div>
-
+  </div>
+  
       {/* Navigation buttons */}
       <div className="navigation-buttons">
         <button 

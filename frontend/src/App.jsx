@@ -26,11 +26,24 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     
-    if (!token || token === "undefined" || token === "null") {
+    if (!token || token === "undefined" || token === "null" || token === "") {
       localStorage.removeItem("token");
+      localStorage.removeItem("userData");
       setIsAuthenticated(false);
     } else {
-      setIsAuthenticated(true);
+      // try {
+      //   const tokenParts = token.split('.');
+      //   if (tokenParts.length !== 3) {
+      //     throw new Error('Invalid token format');
+      //   }
+        // Only set authenticated to true if token is valid
+        setIsAuthenticated(true);
+      // } catch (error) {
+      //   console.error('Invalid token:', error);
+      //   localStorage.removeItem("token");
+      //   localStorage.removeItem("userData");
+      //   setIsAuthenticated(false);
+      // }
     }
     
     setAuthChecked(true);
@@ -99,7 +112,7 @@ function App() {
           </Routes>
         </main>
         <Footer isAuthenticated={isAuthenticated} />
-      </div>
+  </div>
     </Router>
   );
 }

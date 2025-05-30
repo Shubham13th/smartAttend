@@ -35,8 +35,6 @@ const connectDB = async () => {
     console.log('MongoDB URI:', process.env.MONGODB_URI ? 'URI is defined' : 'URI is NOT defined');
     
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
