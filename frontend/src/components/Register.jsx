@@ -51,7 +51,7 @@ const Register = ({ onRegister }) => {
       // Generate a unique companyId from company name
       const companyId = formData.companyName.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now().toString(36);
 
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post('https://smartattend-backend.onrender.com/api/auth/register', {
         name: formData.name,
         email: formData.email,
         password: formData.password,

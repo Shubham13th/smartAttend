@@ -20,7 +20,7 @@ const Employees = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/employees', {
+      const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
         headers: {
           Authorization: `Bearer ${token}`
         }

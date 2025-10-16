@@ -83,7 +83,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       console.log('Fetching employees with token:', token ? 'Token exists' : 'No token');
       
-      const response = await axios.get('http://localhost:5000/api/employees', {
+      const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -116,7 +116,7 @@ const Dashboard = () => {
   const fetchTodayAttendance = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/attendance/today', {
+      const response = await axios.get('https://smartattend-backend.onrender.com/api/attendance/today', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
