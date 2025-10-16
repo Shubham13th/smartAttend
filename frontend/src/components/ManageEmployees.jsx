@@ -29,7 +29,7 @@ const ManageEmployees = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/employees', {
+      const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -62,7 +62,7 @@ const ManageEmployees = () => {
         return;
       }
 
-      await axios.put(`http://localhost:5000/api/employees/${editingEmployee._id}`, formData, {
+      await axios.put(`https://smartattend-backend.onrender.com/api/employees/${editingEmployee._id}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -83,7 +83,7 @@ const ManageEmployees = () => {
           return;
         }
 
-        await axios.delete(`http://localhost:5000/api/employees/${employeeId}`, {
+        await axios.delete(`https://smartattend-backend.onrender.com/api/employees/${employeeId}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
