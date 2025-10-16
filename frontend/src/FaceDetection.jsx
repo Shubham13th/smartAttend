@@ -98,7 +98,7 @@ const FaceDetection = () => {
       let response;
       try {
         console.log("Fetching employees with encodings...");
-        response = await axios.get("http://localhost:5000/api/employees/with-encodings", {
+        response = await axios.get("https://smartattend-backend.onrender.com/api/employees/with-encodings", {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -107,7 +107,7 @@ const FaceDetection = () => {
       } catch (endpointError) {
         console.error("Error fetching employees with encodings:", endpointError);
         console.log('Falling back to regular employees endpoint...');
-        response = await axios.get("http://localhost:5000/api/employees", {
+        response = await axios.get("https://smartattend-backend.onrender.com/api/employees", {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -260,14 +260,14 @@ const FaceDetection = () => {
       // Try employees endpoint first, fallback to students if needed
       let response;
       try {
-        response = await axios.post("http://localhost:5000/api/employees/register", employeeData, {
+        response = await axios.post("https://smartattend-backend.onrender.com/api/employees/register", employeeData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
       } catch (endpointError) {
         console.log('Employees endpoint failed, trying students endpoint...');
-        response = await axios.post("http://localhost:5000/api/students/register", employeeData, {
+        response = await axios.post("https://smartattend-backend.onrender.com/api/students/register", employeeData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -519,7 +519,7 @@ const FaceDetection = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/attendance",
+        "https://smartattend-backend.onrender.com/api/attendance",
         { employeeId },
         {
           headers: {
