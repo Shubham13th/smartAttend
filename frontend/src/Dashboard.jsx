@@ -25,7 +25,7 @@ const Dashboard = () => {
 
   // Refresh function to update attendance data
   const refreshDashboardData = () => {
-    console.log('Refreshing dashboard data...');
+    // console.log('Refreshing dashboard data...');
     setLastRefresh(Date.now());
   };
 
@@ -39,7 +39,7 @@ const Dashboard = () => {
     // Check if we need to refresh based on localStorage flag
     const dashboardRefresh = localStorage.getItem('dashboardRefresh');
     if (dashboardRefresh) {
-      console.log('Dashboard refresh triggered from attendance marking');
+      // console.log('Dashboard refresh triggered from attendance marking');
       localStorage.removeItem('dashboardRefresh'); // Clear the flag
       setLastRefresh(Date.now());
     }
@@ -49,7 +49,7 @@ const Dashboard = () => {
       const userDataStr = localStorage.getItem('userData');
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
-        console.log('User data loaded from localStorage:', userData);
+        // console.log('User data loaded from localStorage:', userData);
         
         if (userData.companyId) {
           setCompanyInfo({
@@ -81,7 +81,7 @@ const Dashboard = () => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching employees with token:', token ? 'Token exists' : 'No token');
+      // console.log('Fetching employees with token:', token ? 'Token exists' : 'No token');
       
       const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
         headers: { Authorization: `Bearer ${token}` }
@@ -120,7 +120,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('Attendance API response:', response.data.length, 'attendance records');
+      // console.log('Attendance API response:', response.data.length, 'attendance records');
       const todayData = response.data;
       
       // Handle case when no employees are present
