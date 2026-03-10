@@ -16,7 +16,11 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json()); // ✅ Ensure request body is parsed correctly
 
 // Request logging middleware
@@ -33,20 +37,20 @@ const connectDB = async () => {
   try {
     console.log('Connecting to MongoDB...');
     console.log('MongoDB URI:', process.env.MONGODB_URI ? 'URI is defined' : 'URI is NOT defined');
-    
+
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance', {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
-    
+
     console.log('✅ MongoDB Connected:', conn.connection.host);
     console.log('Database Name:', conn.connection.name);
-    
+
     // Test User model
     try {
       const count = await User.estimatedDocumentCount();
       console.log(`✅ User model is working. Found ${count} users.`);
-      
+
       // Validate indexes - important for unique constraints
       const indexes = await User.collection.indexes();
       console.log('User collection indexes:', JSON.stringify(indexes));
@@ -58,13 +62,13 @@ const connectDB = async () => {
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err);
     console.error('Error Stack:', err.stack);
-    
+
     if (err.name === 'MongoParseError') {
       console.error('Check your MongoDB connection string - it appears to be malformed');
     } else if (err.name === 'MongoServerSelectionError') {
       console.error('Could not connect to MongoDB server. Make sure MongoDB is running.');
     }
-    
+
     // Retry connection after 5 seconds
     console.log('Retrying connection in 5 seconds...');
     setTimeout(connectDB, 5000);
@@ -76,14 +80,14 @@ const fixUserIndexes = async () => {
   try {
     console.log('Checking for problematic indexes...');
     const db = mongoose.connection;
-    
+
     // Wait for MongoDB connection
     if (db.readyState !== 1) {
       await new Promise(resolve => {
         db.once('open', resolve);
       });
     }
-    
+
     // Drop the problematic username index
     try {
       await db.collection('users').dropIndex('username_1');
@@ -92,7 +96,7 @@ const fixUserIndexes = async () => {
       // Ignore if index doesn't exist
       console.log('Note: username_1 index not found or already dropped');
     }
-    
+
     console.log('Database indexes check completed');
   } catch (error) {
     console.error('Error fixing indexes:', error);
@@ -147,7 +151,7 @@ app.get('/api/data', (req, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     const { name, encoding } = req.body;
-    
+
     console.log('Incoming Request Data:', req.body); // ✅ Debugging log
 
     if (!name || !encoding) {
@@ -242,7 +246,7 @@ app.use((err, req, res, next) => {
     body: req.body,
     timestamp: new Date().toISOString()
   });
-  
+
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message,
@@ -250,9 +254,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start the Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-});
+// Start the Server (only in local dev — Vercel handles this in production)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+  });
+}
+
+// ✅ Export app for Vercel serverless
+module.exports = app;
