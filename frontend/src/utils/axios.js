@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'https://smartattend-backend.onrender.com',
+  baseURL: 'https://smartattend-backend.vercel.app',
   headers: {
     'Content-Type': 'application/json',
   },

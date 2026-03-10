@@ -50,7 +50,7 @@ const Dashboard = () => {
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         // console.log('User data loaded from localStorage:', userData);
-        
+
         if (userData.companyId) {
           setCompanyInfo({
             companyId: userData.companyId,
@@ -82,14 +82,14 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       // console.log('Fetching employees with token:', token ? 'Token exists' : 'No token');
-      
-      const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
+
+      const response = await axios.get('https://smartattend-backend.vercel.app/api/employees', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       console.log('Employees API response:', response.data.length, 'employees');
       setRegisteredEmployees(response.data);
-      
+
       // Initialize department stats
       const departmentStats = {};
       response.data.forEach(emp => {
@@ -99,7 +99,7 @@ const Dashboard = () => {
         }
         departmentStats[dept].total++;
       });
-      
+
       setStats(prev => ({ ...prev, totalEmployees: response.data.length, departmentStats }));
     } catch (err) {
       console.error('Error fetching employees:', err);
@@ -116,13 +116,13 @@ const Dashboard = () => {
   const fetchTodayAttendance = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('https://smartattend-backend.onrender.com/api/attendance/today', {
+      const response = await axios.get('https://smartattend-backend.vercel.app/api/attendance/today', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       // console.log('Attendance API response:', response.data.length, 'attendance records');
       const todayData = response.data;
-      
+
       // Handle case when no employees are present
       if (!registeredEmployees.length) {
         setStats(prev => ({
@@ -133,7 +133,7 @@ const Dashboard = () => {
         setLoading(false);
         return;
       }
-      
+
       // Count unique employees present (using Set to ensure each employee is counted only once)
       const uniqueEmployeeIds = new Set();
       todayData.forEach(record => {
@@ -142,40 +142,40 @@ const Dashboard = () => {
         }
       });
       let presentCount = uniqueEmployeeIds.size;
-      
+
       console.log(`Unique employees present today: ${presentCount}`);
-      
+
       // Update department stats with present counts
       const updatedDepartmentStats = { ...stats.departmentStats };
       // Reset all present counts first to avoid double counting
       Object.keys(updatedDepartmentStats).forEach(dept => {
         updatedDepartmentStats[dept].present = 0;
       });
-      
+
       // Count unique employees by department
       const departmentCounts = {};
       todayData.forEach(record => {
         if (record.employeeId && record.employeeId.department) {
           const dept = record.employeeId.department || 'Unassigned';
           const empId = record.employeeId._id;
-          
+
           if (!departmentCounts[dept]) {
             departmentCounts[dept] = new Set();
           }
           departmentCounts[dept].add(empId);
         }
       });
-      
+
       // Update department stats based on unique counts
       Object.keys(departmentCounts).forEach(dept => {
         if (updatedDepartmentStats[dept]) {
           updatedDepartmentStats[dept].present = departmentCounts[dept].size;
-          
+
           // Ensure present count doesn't exceed total
           if (updatedDepartmentStats[dept].present > updatedDepartmentStats[dept].total) {
             updatedDepartmentStats[dept].present = updatedDepartmentStats[dept].total;
           }
-          
+
           updatedDepartmentStats[dept].rate = Math.round(
             (updatedDepartmentStats[dept].present / updatedDepartmentStats[dept].total) * 100
           );
@@ -183,12 +183,12 @@ const Dashboard = () => {
       });
 
       const totalEmployees = registeredEmployees.length;
-      
+
       // Ensure present count doesn't exceed total employees
       if (presentCount > totalEmployees) {
         presentCount = totalEmployees;
       }
-      
+
       setStats(prev => ({
         ...prev,
         totalEmployees,

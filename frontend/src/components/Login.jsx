@@ -27,27 +27,27 @@ const Login = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://smartattend-backend.onrender.com/api/auth/login', {
+      const response = await axios.post('https://smartattend-backend.vercel.app/api/auth/login', {
         email: formData.email,
         password: formData.password,
         companyName: formData.companyName
       });
-      
+
       console.log('Login successful:', response.data);
-      
+
       // Store token in localStorage
       localStorage.setItem('token', response.data.token);
-      
+
       // Store user data in localStorage
       if (response.data.user) {
         const userData = response.data.user;
-        
+
         // If company name was provided but no companyId exists, create one
         if (formData.companyName && !userData.companyId) {
           const companyId = formData.companyName.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now().toString(36);
           userData.companyId = companyId;
           userData.companyName = formData.companyName;
-          
+
           console.log('Created company info:', {
             companyId: userData.companyId,
             companyName: userData.companyName
@@ -59,17 +59,17 @@ const Login = ({ onLogin }) => {
           const domainName = emailDomain ? emailDomain.split('.')[0] : 'default';
           userData.companyId = domainName;
           userData.companyName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
-          
+
           console.log('Derived company info from email:', {
             companyId: userData.companyId,
             companyName: userData.companyName
           });
         }
-        
+
         localStorage.setItem('userData', JSON.stringify(userData));
         console.log('User data stored in localStorage:', userData);
       }
-      
+
       onLogin();
       navigate('/dashboard');
     } catch (err) {

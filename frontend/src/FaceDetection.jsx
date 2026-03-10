@@ -16,7 +16,7 @@ const FaceDetection = () => {
     "Up",
     "Down"
   ];
-  
+
   // Add departments array
   const departments = [
     "Frontend Developer",
@@ -34,7 +34,7 @@ const FaceDetection = () => {
     "Cloud Engineer",
     "Technical Support Engineer"
   ];
-  
+
   const [currentAngle, setCurrentAngle] = useState(0);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [faceMatcher, setFaceMatcher] = useState(null);
@@ -98,7 +98,7 @@ const FaceDetection = () => {
       let response;
       try {
         console.log("Fetching employees with encodings...");
-        response = await axios.get("https://smartattend-backend.onrender.com/api/employees/with-encodings", {
+        response = await axios.get("https://smartattend-backend.vercel.app/api/employees/with-encodings", {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -107,20 +107,20 @@ const FaceDetection = () => {
       } catch (endpointError) {
         console.error("Error fetching employees with encodings:", endpointError);
         console.log('Falling back to regular employees endpoint...');
-        response = await axios.get("https://smartattend-backend.onrender.com/api/employees", {
+        response = await axios.get("https://smartattend-backend.vercel.app/api/employees", {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
         console.log("Regular employees response:", response.data);
       }
-      
+
       if (response.data && Array.isArray(response.data)) {
         // Filter out any employees without encodings
         const employeesWithEncodings = response.data.filter(emp => emp.encoding && emp.encoding.length === 128);
         console.log("Employees with valid encodings:", employeesWithEncodings.length);
         setRegisteredEmployees(employeesWithEncodings);
-        
+
         // If no employees with encodings, show a more user-friendly message
         if (employeesWithEncodings.length === 0) {
           setStatus("No employees with face data found. Please register employees first.");
@@ -149,15 +149,15 @@ const FaceDetection = () => {
 
   const checkLiveness = async (detections) => {
     if (!detections || detections.length === 0) return false;
-    
+
     const face = detections[0];
     const expressions = face.expressions;
-    
+
     // Basic liveness check based on expressions
     const isNatural = expressions.happy > 0.5 || expressions.neutral > 0.5;
-    const hasBlink = face.landmarks.getLeftEye().length > 0 && 
-                    face.landmarks.getRightEye().length > 0;
-    
+    const hasBlink = face.landmarks.getLeftEye().length > 0 &&
+      face.landmarks.getRightEye().length > 0;
+
     return isNatural && hasBlink;
   };
 
@@ -214,13 +214,13 @@ const FaceDetection = () => {
 
       setStatus("Detecting face...");
 
-    const detections = await faceapi
-      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
+      const detections = await faceapi
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
         .withFaceDescriptor()
         .withFaceExpressions();
 
-    if (!detections || !detections.descriptor) {
+      if (!detections || !detections.descriptor) {
         setStatus("No face detected. Please position your face clearly in the frame.");
         return;
       }
@@ -229,17 +229,17 @@ const FaceDetection = () => {
       const isLivenessValid = await checkLiveness([detections]);
       if (!isLivenessValid) {
         setStatus("Liveness check failed. Please ensure you are a real person.");
-      return;
-    }
+        return;
+      }
 
       setStatus("Processing face data...");
 
       // Store the face descriptor
       const employeeData = {
-      name,
+        name,
         email,
         department,
-      encoding: Array.from(detections.descriptor),
+        encoding: Array.from(detections.descriptor),
         angle: captureAngles[currentAngle]
       };
 
@@ -260,14 +260,14 @@ const FaceDetection = () => {
       // Try employees endpoint first, fallback to students if needed
       let response;
       try {
-        response = await axios.post("https://smartattend-backend.onrender.com/api/employees/register", employeeData, {
+        response = await axios.post("https://smartattend-backend.vercel.app/api/employees/register", employeeData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
       } catch (endpointError) {
         console.log('Employees endpoint failed, trying students endpoint...');
-        response = await axios.post("https://smartattend-backend.onrender.com/api/students/register", employeeData, {
+        response = await axios.post("https://smartattend-backend.vercel.app/api/students/register", employeeData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -284,7 +284,7 @@ const FaceDetection = () => {
           setStatus(`${name} registered successfully!`);
           setIsCapturing(false);
           setCurrentAngle(0);
-      setName("");
+          setName("");
           setEmail("");
           setDepartment("");
           fetchRegisteredEmployees();
@@ -314,7 +314,7 @@ const FaceDetection = () => {
       setFaceMatcher(null);
       return;
     }
-    
+
     if (registeredEmployees.length === 0) {
       console.warn("FaceMatcher not initialized: No registered employees.");
       setFaceMatcher(null);
@@ -356,7 +356,7 @@ const FaceDetection = () => {
   // Whenever we get new employees or load models, re-initialize the matcher
   useEffect(() => {
     if (isModelLoaded && registeredEmployees.length > 0) {
-    initializeFaceMatcher();
+      initializeFaceMatcher();
     }
   }, [registeredEmployees, isModelLoaded]);
 
@@ -366,7 +366,7 @@ const FaceDetection = () => {
       setStatus("Face recognition models are still loading. Please wait...");
       return;
     }
-    
+
     if (!faceMatcher) {
       // Don't show error here as initializeFaceMatcher already sets status
       return;
@@ -392,11 +392,11 @@ const FaceDetection = () => {
       canvasRef.current.height = videoHeight;
 
       try {
-      // Detect faces
-      const detections = await faceapi
-        .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+        // Detect faces
+        const detections = await faceapi
+          .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptors();
 
         // Make sure canvas is still in the DOM before continuing
         if (!canvasRef.current) {
@@ -405,75 +405,75 @@ const FaceDetection = () => {
         }
 
         // Resize to match video's size
-      const displaySize = { width: videoWidth, height: videoHeight };
-      faceapi.matchDimensions(canvasRef.current, displaySize);
-      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        const displaySize = { width: videoWidth, height: videoHeight };
+        faceapi.matchDimensions(canvasRef.current, displaySize);
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
-      // Clear previous drawings
-      const ctx = canvasRef.current.getContext("2d");
+        // Clear previous drawings
+        const ctx = canvasRef.current.getContext("2d");
         if (!ctx) {
           console.log("Canvas context not available");
           return;
         }
-        
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-      // Draw bounding boxes & landmarks
-      faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
-      faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-      let detectedName = "Unknown";
+        // Draw bounding boxes & landmarks
+        faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+        faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
 
-      if (faceMatcher) {
-        resizedDetections.forEach((detection) => {
-          // Check if descriptor is valid
-          if (!detection.descriptor || detection.descriptor.length !== 128) {
-            console.warn("Invalid face descriptor detected, skipping...");
-            return;
-          }
+        let detectedName = "Unknown";
 
-          // Find best match
-          const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-          detectedName = bestMatch.label;
+        if (faceMatcher) {
+          resizedDetections.forEach((detection) => {
+            // Check if descriptor is valid
+            if (!detection.descriptor || detection.descriptor.length !== 128) {
+              console.warn("Invalid face descriptor detected, skipping...");
+              return;
+            }
+
+            // Find best match
+            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+            detectedName = bestMatch.label;
 
             // Make sure canvas is still in the DOM before drawing
             if (!canvasRef.current) return;
 
-          // Draw a labeled box
-          const { box } = detection.detection;
-          const drawBox = new faceapi.draw.DrawBox(box, {
-            label: bestMatch.toString(),
+            // Draw a labeled box
+            const { box } = detection.detection;
+            const drawBox = new faceapi.draw.DrawBox(box, {
+              label: bestMatch.toString(),
+            });
+            drawBox.draw(canvasRef.current);
           });
-          drawBox.draw(canvasRef.current);
-        });
-      }
+        }
 
-      // Update recognized name in UI
+        // Update recognized name in UI
         setRecognizedEmployee(detectedName);
 
         // If recognized and not already marked attendance recently, mark attendance
         if (detectedName !== "Unknown" && !isProcessingAttendance) {
           const now = new Date().getTime();
-          
+
           // Check for employee in lastAttendanceMark by name
           const employee = registeredEmployees.find(e => e.name === detectedName);
-          
+
           if (!employee || !employee._id) {
             console.error("Could not find employee ID for", detectedName);
             setStatus("Error: Employee not found in database");
             return;
           }
-          
+
           // Use employee ID for cooldown tracking instead of name
           const lastMark = lastAttendanceMark[employee._id] || 0;
           const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours cooldown
-          
+
           console.log(`Time since last mark for ${detectedName}: ${(now - lastMark) / 60000} minutes`);
 
           // Only check attendance if enough time has passed
           if (now - lastMark > cooldownPeriod) {
             setIsProcessingAttendance(true);
-            
+
             // Mark attendance
             markAttendance(employee._id, detectedName);
           } else if ((now - lastMark) < 60000) { // Less than a minute
@@ -519,7 +519,7 @@ const FaceDetection = () => {
       }
 
       const response = await axios.post(
-        "https://smartattend-backend.onrender.com/api/attendance",
+        "https://smartattend-backend.vercel.app/api/attendance",
         { employeeId },
         {
           headers: {
@@ -535,10 +535,10 @@ const FaceDetection = () => {
           ...prev,
           [employeeId]: new Date().getTime()
         }));
-        
+
         // Store refresh flag in localStorage to trigger dashboard refresh
         localStorage.setItem('dashboardRefresh', Date.now().toString());
-        
+
         // Add a slight delay to show success message before redirecting
         setTimeout(() => {
           navigate('/dashboard');
@@ -574,13 +574,13 @@ const FaceDetection = () => {
       <div className="main-content">
         {/* Left side: Registration Form */}
         <div className="registration-form">
-      <input
+          <input
             className="registration-input"
-        type="text"
+            type="text"
             placeholder="Full Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <input
             className="registration-input"
             type="email"
@@ -601,14 +601,14 @@ const FaceDetection = () => {
               </option>
             ))}
           </select>
-      <button 
-            className="capture-button" 
+          <button
+            className="capture-button"
             onClick={isCapturing ? captureFace : handleRegister}
             disabled={isCapturing && !videoRef.current?.srcObject}
-      >
+          >
             {isCapturing ? `Capture ${captureAngles[currentAngle]} View` : "Start Registration"}
-      </button>
-    </div>
+          </button>
+        </div>
 
         {/* Right side: Camera and Detection */}
         <div className="camera-section">
@@ -618,33 +618,33 @@ const FaceDetection = () => {
               {status}
             </div>
           )}
-  
-    {/* Video & Canvas */}
+
+          {/* Video & Canvas */}
           <div className="video-container">
-      <video
-        ref={videoRef}
-        autoPlay
-      />
+            <video
+              ref={videoRef}
+              autoPlay
+            />
             <canvas ref={canvasRef} />
-    </div>
-  
-    {/* Detected Name */}
+          </div>
+
+          {/* Detected Name */}
           <h2 className="detected-name">
             Detected Employee: <span>{recognizedEmployee}</span>
-    </h2>
+          </h2>
         </div>
-  </div>
-  
+      </div>
+
       {/* Navigation buttons */}
       <div className="navigation-buttons">
-        <button 
-          className="nav-button" 
+        <button
+          className="nav-button"
           onClick={() => navigate('/dashboard')}
         >
           View Dashboard
         </button>
-        <button 
-          className="nav-button" 
+        <button
+          className="nav-button"
           onClick={() => navigate('/employees')}
         >
           Manage Employees

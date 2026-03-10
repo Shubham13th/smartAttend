@@ -51,7 +51,7 @@ const Register = ({ onRegister }) => {
       // Generate a unique companyId from company name
       const companyId = formData.companyName.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now().toString(36);
 
-      const response = await axios.post('https://smartattend-backend.onrender.com/api/auth/register', {
+      const response = await axios.post('https://smartattend-backend.vercel.app/api/auth/register', {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -59,12 +59,12 @@ const Register = ({ onRegister }) => {
         companyId: companyId,
         role: formData.companyRole
       });
-      
+
       console.log('Registration successful:', response.data);
-      
+
       // Store token in localStorage
       localStorage.setItem('token', response.data.token);
-      
+
       // Store user data in localStorage
       if (response.data.user) {
         // Ensure company data is included
@@ -73,11 +73,11 @@ const Register = ({ onRegister }) => {
           companyId: companyId,
           companyName: formData.companyName
         };
-        
+
         localStorage.setItem('userData', JSON.stringify(userData));
         console.log('User data stored in localStorage:', userData);
       }
-      
+
       if (onRegister) {
         onRegister();
       }
@@ -89,7 +89,7 @@ const Register = ({ onRegister }) => {
         data: err.response?.data,
         message: err.message
       });
-      
+
       // More specific error messages based on response
       if (err.response?.status === 500) {
         setError('Server error occurred. Please try again later or contact support.');

@@ -20,7 +20,7 @@ const Employees = () => {
         return;
       }
 
-      const response = await axios.get('https://smartattend-backend.onrender.com/api/employees', {
+      const response = await axios.get('https://smartattend-backend.vercel.app/api/employees', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -44,7 +44,7 @@ const Employees = () => {
     }
   };
 
-  const filteredEmployees = employees.filter(employee => 
+  const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.department.toLowerCase().includes(searchTerm.toLowerCase())
