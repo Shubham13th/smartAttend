@@ -257,22 +257,12 @@ const FaceDetection = () => {
         }
       }
 
-      // Try employees endpoint first, fallback to students if needed
-      let response;
-      try {
-        response = await axios.post("https://smartattend-backend.vercel.app/api/employees/register", employeeData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-      } catch (endpointError) {
-        console.log('Employees endpoint failed, trying students endpoint...');
-        response = await axios.post("https://smartattend-backend.vercel.app/api/students/register", employeeData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-      }
+      // Register employee via the employees endpoint
+      const response = await axios.post("https://smartattend-backend.vercel.app/api/employees/register", employeeData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
       // Handle the response properly
       if (response.status === 200 || response.status === 201) {

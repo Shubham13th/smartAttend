@@ -54,8 +54,6 @@ const employeeSchema = new mongoose.Schema({
 
 // Add index for faster queries
 employeeSchema.index({ name: 1 });
-employeeSchema.index({ email: 1 });
-employeeSchema.index({ employeeId: 1 });
 employeeSchema.index({ department: 1 });
 employeeSchema.index({ isActive: 1 });
 employeeSchema.index({ companyId: 1 });
