@@ -485,11 +485,21 @@ const FaceDetection = () => {
   // Add cleanup effect
   useEffect(() => {
     let cleanup;
+    
+    const startDetection = async () => {
+      cleanup = await handleVideoOnPlay();
+    };
+
     if (videoRef.current) {
-      videoRef.current.onplay = async () => {
-        cleanup = await handleVideoOnPlay();
-      };
+      // Bind event for when it starts playing later
+      videoRef.current.onplay = startDetection;
+      
+      // If it's already playing right now, start immediately
+      if (!videoRef.current.paused && !videoRef.current.ended && videoRef.current.readyState > 2) {
+        startDetection();
+      }
     }
+    
     return () => {
       if (cleanup) cleanup();
     };
