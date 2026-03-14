@@ -15,7 +15,23 @@ const Register = ({ onRegister }) => {
     companyRole: 'admin' // Default role when creating a company
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Compute password strength label based on length and character types
+  const computePasswordStrength = (password) => {
+    if (!password) return '';
+    if (password.length < 6) return 'Weak';
+    const hasUpper = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+    const score = [hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
+    if (password.length >= 12 && score >= 2) return 'Strong';
+    if (password.length >= 8 && score >= 1) return 'Medium';
+    return 'Weak';
+  };
+
+  const passwordStrength = computePasswordStrength(formData.password);
 
   const handleChange = (e) => {
     setFormData({
@@ -116,7 +132,7 @@ const Register = ({ onRegister }) => {
         </div>
 
         {error && <div className="error-message">{error}</div>}
-        {successMessage && <div className="success-message">{successMessage}</div>}
+        {successMessage && <div className="success-message" style={{ color: '#34d399', marginBottom: '1rem', textAlign: 'center' }}>{successMessage}</div>}
 
         <form onSubmit={handleSubmit} className="register-form">
           
