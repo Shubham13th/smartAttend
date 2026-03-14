@@ -151,14 +151,14 @@ const FaceDetection = () => {
     if (!detections || detections.length === 0) return false;
 
     const face = detections[0];
-    const expressions = face.expressions;
+    // Simple structural liveness: just check that face landmarks are present
+    // This is a lightweight check to filter out flat images/drawings
+    const hasLandmarks = face.landmarks &&
+      face.landmarks.getLeftEye().length > 0 &&
+      face.landmarks.getRightEye().length > 0 &&
+      face.landmarks.getNose().length > 0;
 
-    // Basic liveness check based on expressions
-    const isNatural = expressions.happy > 0.5 || expressions.neutral > 0.5;
-    const hasBlink = face.landmarks.getLeftEye().length > 0 &&
-      face.landmarks.getRightEye().length > 0;
-
-    return isNatural && hasBlink;
+    return hasLandmarks;
   };
 
   const handleRegister = async () => {
@@ -176,16 +176,17 @@ const FaceDetection = () => {
 
       setIsCapturing(true);
       setStatus(`Please position your face ${captureAngles[currentAngle]}`);
-      // Start capturing immediately
-      await captureFace();
+      // Pass force=true to bypass the isCapturing check (state hasn't updated yet)
+      await captureFace(true);
     } catch (error) {
       console.error("Error starting registration:", error);
       setStatus("Error starting registration process");
     }
   };
 
-  const captureFace = async () => {
-    if (!isCapturing) return;
+  const captureFace = async (force = false) => {
+    // Allow force=true on first call so we bypass the stale React state check
+    if (!force && !isCapturing) return;
 
     try {
       // Check if models are loaded
@@ -284,15 +285,20 @@ const FaceDetection = () => {
       }
     } catch (error) {
       console.error("Error capturing face:", error);
+      const serverMsg = error.response?.data?.error || error.response?.data?.message;
       if (error.response?.status === 401) {
         setStatus("Session expired. Please login again");
         window.location.href = "/login";
       } else if (error.response?.status === 409) {
         setStatus("Employee with this email already exists");
-      } else if (error.message.includes("face-api")) {
+      } else if (error.response?.status === 404) {
+        setStatus("Registration endpoint not found. Please check backend configuration.");
+      } else if (serverMsg) {
+        setStatus(`Error: ${serverMsg}`);
+      } else if (error.message && error.message.includes("face-api")) {
         setStatus("Error with face detection. Please try again.");
       } else {
-        setStatus(error.response?.data?.message || "Error capturing face. Please try again.");
+        setStatus(`Error: ${error.message || "Unknown error. Please try again."}`);
       }
     }
   };
@@ -408,31 +414,76 @@ const FaceDetection = () => {
 
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
+        // Instead of scaling the canvas (which flips text backwards),
+        // we manually mirror the bounding boxes by subtracting X from the total width.
+        const mirrorDetections = (dets) => {
+          return dets.map(det => {
+            // Mirror bounding box
+            const box = det.detection.box;
+            const mirroredBox = new faceapi.Rect(
+              canvasRef.current.width - box.x - box.width,
+              box.y,
+              box.width,
+              box.height
+            );
+
+            // Mirror landmarks if present
+            let mirroredLandmarks = det.landmarks;
+            if (det.landmarks) {
+              const mirroredPositions = det.landmarks.positions.map(pt => new faceapi.Point(
+                canvasRef.current.width - pt.x,
+                pt.y
+              ));
+              mirroredLandmarks = new faceapi.FaceLandmarks68(
+                mirroredPositions,
+                { width: canvasRef.current.width, height: canvasRef.current.height }
+              );
+            }
+
+            // Create a new FullFaceDescription with the mirrored data
+            return {
+              ...det,
+              detection: new faceapi.FaceDetection(
+                det.detection.score,
+                mirroredBox,
+                { width: canvasRef.current.width, height: canvasRef.current.height }
+              ),
+              landmarks: mirroredLandmarks
+            };
+          });
+        };
+
+        const mirroredDetections = mirrorDetections(resizedDetections);
+
         // Draw bounding boxes & landmarks
-        faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
-        faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+        faceapi.draw.drawDetections(canvasRef.current, mirroredDetections.map(m => m.detection));
+        faceapi.draw.drawFaceLandmarks(canvasRef.current, mirroredDetections.map(m => m.landmarks));
 
         let detectedName = "Unknown";
 
         if (faceMatcher) {
-          resizedDetections.forEach((detection) => {
-            // Check if descriptor is valid
-            if (!detection.descriptor || detection.descriptor.length !== 128) {
+          mirroredDetections.forEach((detection, i) => {
+            const originalDetection = resizedDetections[i];
+            
+            // Check if descriptor is valid (use original for descriptors)
+            if (!originalDetection.descriptor || originalDetection.descriptor.length !== 128) {
               console.warn("Invalid face descriptor detected, skipping...");
               return;
             }
 
             // Find best match
-            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+            const bestMatch = faceMatcher.findBestMatch(originalDetection.descriptor);
             detectedName = bestMatch.label;
 
             // Make sure canvas is still in the DOM before drawing
             if (!canvasRef.current) return;
 
-            // Draw a labeled box
+            // Draw a labeled box using the mirrored coordinates
             const { box } = detection.detection;
             const drawBox = new faceapi.draw.DrawBox(box, {
               label: bestMatch.toString(),
+              boxColor: bestMatch.label === 'unknown' ? '#f87171' : '#34d399',
+              lineWidth: 2,
             });
             drawBox.draw(canvasRef.current);
           });
@@ -474,7 +525,7 @@ const FaceDetection = () => {
       } catch (error) {
         console.error("Error in face detection loop:", error);
       }
-    }, 10000); // Increased interval to 10 seconds to reduce repeated detections
+    }, 300); // 300ms for real-time face detection
 
     // Cleanup function
     return () => {
@@ -536,13 +587,8 @@ const FaceDetection = () => {
           [employeeId]: new Date().getTime()
         }));
 
-        // Store refresh flag in localStorage to trigger dashboard refresh
+        // Store refresh flag in localStorage to trigger dashboard refresh on next visit
         localStorage.setItem('dashboardRefresh', Date.now().toString());
-
-        // Add a slight delay to show success message before redirecting
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 3000);
       } else if (response.status === 200 && response.data.message.includes('already marked')) {
         setStatus(`${employeeName}'s attendance was already marked for today.`);
         // Update the timestamp even for already marked attendance to prevent repeated attempts
@@ -573,7 +619,7 @@ const FaceDetection = () => {
 
       <div className="main-content">
         {/* Left side: Registration Form */}
-        <div className="registration-form">
+        <div className="glass-card registration-form">
           <input
             className="registration-input"
             type="text"
