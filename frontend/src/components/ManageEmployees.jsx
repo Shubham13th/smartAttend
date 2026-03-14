@@ -42,19 +42,34 @@ const ManageEmployees = () => {
     }
   };
 
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    department: '',
+    position: '',
+    employeeId: ''
+  });
+
   const handleEdit = (employee) => {
-    setEditingEmployee(employee);
-    setFormData({
-      name: employee.name,
-      email: employee.email,
-      department: employee.department,
+    setEditingId(employee._id);
+    setEditForm({
+      name: employee.name || '',
+      email: employee.email || '',
+      department: employee.department || '',
       position: employee.position || '',
       employeeId: employee.employeeId || ''
     });
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const handleInputChange = (e) => {
+    setEditForm({
+      ...editForm,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSave = async (employeeId) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -62,12 +77,12 @@ const ManageEmployees = () => {
         return;
       }
 
-      await axios.put(`https://smartattend-backend.vercel.app/api/employees/${editingEmployee._id}`, formData, {
+      await axios.put(`https://smartattend-backend.vercel.app/api/employees/${employeeId}`, editForm, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      setEditingEmployee(null);
+      setEditingId(null);
       fetchEmployees();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update employee');
@@ -95,103 +110,94 @@ const ManageEmployees = () => {
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditForm({
+      name: '',
+      email: '',
+      department: '',
+      position: '',
+      employeeId: ''
     });
   };
 
-  if (loading) {
-    return <div className="loading">Loading employees...</div>;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
+  if (loading) return <div className="manage-employees-container loading">Loading employees...</div>;
+  if (error) return <div className="manage-employees-container error">{error}</div>;
 
   return (
-    <div className="manage-employees">
-      <h1>Manage Employees</h1>
-
+    <div className="manage-employees-container">
+      <div className="manage-header">
+        <h1 className="manage-title">Manage Employees</h1>
+        <p className="manage-subtitle">Edit or remove team members from your workspace</p>
+      </div>
+      
       <div className="employees-list">
         {employees.length === 0 ? (
-          <p className="no-employees">No employees found. Register employees using the Face Detection feature.</p>
+          <div className="glass-card no-employees">
+            No employees found.
+          </div>
         ) : (
           employees.map((employee) => (
-            <div key={employee._id} className="employee-card">
-              {editingEmployee?._id === employee._id ? (
-                <form onSubmit={handleUpdate} className="edit-form">
+            <div key={employee._id} className="glass-card manage-card">
+              {editingId === employee._id ? (
+                // Edit Mode
+                <div className="edit-form">
                   <input
                     type="text"
                     name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Name"
-                    required
+                    value={editForm.name}
+                    onChange={handleInputChange}
+                    placeholder="Full Name"
+                    className="edit-input"
                   />
                   <input
                     type="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Email"
-                    required
+                    value={editForm.email}
+                    onChange={handleInputChange}
+                    placeholder="Email Address"
+                    className="edit-input"
                   />
                   <input
                     type="text"
                     name="department"
-                    value={formData.department}
-                    onChange={handleChange}
+                    value={editForm.department}
+                    onChange={handleInputChange}
                     placeholder="Department"
-                    required
+                    className="edit-input"
                   />
                   <input
                     type="text"
                     name="position"
-                    value={formData.position}
-                    onChange={handleChange}
-                    placeholder="Position"
-                  />
-                  <input
-                    type="text"
-                    name="employeeId"
-                    value={formData.employeeId}
-                    onChange={handleChange}
-                    placeholder="Employee ID"
-                    disabled
+                    value={editForm.position}
+                    onChange={handleInputChange}
+                    placeholder="Position/Role"
+                    className="edit-input"
                   />
                   <div className="button-group">
-                    <button type="submit" className="save-button">Save</button>
-                    <button
-                      type="button"
-                      className="cancel-button"
-                      onClick={() => setEditingEmployee(null)}
-                    >
+                    <button onClick={() => handleSave(employee._id)} className="save-button" title="Save">
+                      Save
+                    </button>
+                    <button onClick={handleCancel} className="cancel-button" title="Cancel">
                       Cancel
                     </button>
                   </div>
-                </form>
+                </div>
               ) : (
+                // View Mode
                 <>
                   <div className="employee-info">
                     <h3>{employee.name}</h3>
                     <p><strong>Email:</strong> {employee.email}</p>
-                    <p><strong>Department:</strong> {employee.department}</p>
-                    {employee.position && <p><strong>Position:</strong> {employee.position}</p>}
-                    {employee.employeeId && <p><strong>ID:</strong> {employee.employeeId}</p>}
+                    <p><strong>Department:</strong> {employee.department || 'Unassigned'}</p>
+                    <p><strong>Position:</strong> {employee.position || 'Employee'}</p>
+                    <p><strong>Employee ID:</strong> {employee.employeeId}</p>
                   </div>
                   <div className="button-group">
-                    <button
-                      className="edit-button"
-                      onClick={() => handleEdit(employee)}
-                    >
+                    <button onClick={() => handleEdit(employee)} className="edit-button" title="Edit Employee">
                       Edit
                     </button>
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDelete(employee._id)}
-                    >
+                    <button onClick={() => handleDelete(employee._id)} className="delete-button" title="Delete Employee">
                       Delete
                     </button>
                   </div>

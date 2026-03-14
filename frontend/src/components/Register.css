@@ -3,126 +3,76 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 2rem;
-  background-color: #f8f9fa;
+  padding: 4rem 2rem;
+  /* Rely on global App.css animated background orbs */
 }
 
-.register-card {
+.register-box {
   width: 100%;
   max-width: 550px;
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 2.5rem;
+  padding: 3rem;
+  animation: scale-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.register-card h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
+.register-header {
   text-align: center;
-  font-size: 1.8rem;
+  margin-bottom: 2.5rem;
 }
 
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
+.register-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
   margin-bottom: 0.5rem;
-  color: #566573;
-  font-weight: 500;
+  background: linear-gradient(135deg, var(--accent-tertiary) 0%, var(--accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
+.register-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
-.form-group input:focus {
-  border-color: #3498db;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.form-helper {
-  display: block;
-  font-size: 0.8rem;
-  color: #7f8c8d;
-  margin-top: 0.3rem;
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
 }
 
-.register-button {
-  width: 100%;
-  padding: 0.8rem;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
+/* Same input/button variables inherited from Login classes or global */
 
-.register-button:hover {
-  background-color: #2980b9;
-}
-
-.register-button:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
-}
-
-.error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 0.8rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-}
-
-.auth-link {
+.register-footer {
+  margin-top: 2rem;
   text-align: center;
-  margin-top: 1.5rem;
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: var(--text-secondary);
 }
 
-.auth-link a {
-  color: #3498db;
-  text-decoration: none;
+.register-footer a {
+  color: var(--accent-tertiary);
   font-weight: 500;
+  margin-left: 0.5rem;
+  transition: color var(--transition-fast);
 }
 
-.auth-link a:hover {
+.register-footer a:hover {
+  color: var(--text-primary);
   text-decoration: underline;
 }
 
-.company-section,
-.admin-section {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-}
-
-.company-section h3,
-.admin-section h3 {
-  font-size: 1.2rem;
-  color: #3498db;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eaeaea;
-}
-
-@media (max-width: 768px) {
-  .register-card {
-    padding: 1.5rem;
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
-} 
+  .register-box {
+    padding: 2rem 1.5rem;
+  }
+}

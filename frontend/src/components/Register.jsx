@@ -109,91 +109,103 @@ const Register = ({ onRegister }) => {
 
   return (
     <div className="register-container">
-      <div className="register-card">
-        <h2>Create Company Account</h2>
+      <div className="glass-panel register-box">
+        <div className="register-header">
+          <h2>Register Company</h2>
+          <p>Create a SmartAttend workspace for your team</p>
+        </div>
+
         {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="company-section">
-            <h3>Company Information</h3>
-            <div className="form-group">
-              <label htmlFor="companyName">Company Name*</label>
-              <input
-                type="text"
-                id="companyName"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                placeholder="Enter your company name"
-              />
-              <small className="form-helper">This will be used to identify your company in the system</small>
-            </div>
+        {successMessage && <div className="success-message">{successMessage}</div>}
+
+        <form onSubmit={handleSubmit} className="register-form">
+          
+          <div className="input-group">
+            <label htmlFor="companyName">Company Name</label>
+            <input
+              id="companyName"
+              type="text"
+              name="companyName"
+              placeholder="Acme Corp"
+              value={formData.companyName}
+              onChange={handleChange}
+              required
+              className="glass-input"
+            />
           </div>
 
-          <div className="admin-section">
-            <h3>Admin Information</h3>
-            <div className="form-group">
-              <label htmlFor="name">Full Name*</label>
+          <div className="form-row">
+            <div className="input-group">
+              <label htmlFor="name">Admin Name</label>
               <input
-                type="text"
                 id="name"
+                type="text"
                 name="name"
+                placeholder="Jane Doe"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                placeholder="Enter your full name"
+                className="glass-input"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="email">Email Address*</label>
+
+            <div className="input-group">
+              <label htmlFor="email">Admin Email</label>
               <input
-                type="email"
                 id="email"
+                type="email"
                 name="email"
+                placeholder="jane@acme.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                placeholder="Enter your email address"
+                className="glass-input"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="password">Password*</label>
+          </div>
+
+          <div className="form-row">
+            <div className="input-group">
+              <label htmlFor="password">Password</label>
               <input
-                type="password"
                 id="password"
+                type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                placeholder="Create a password"
-                minLength="6"
+                className="glass-input"
+                autoComplete="new-password"
               />
+              <div className="password-strength">
+                Strength: {passwordStrength}
+              </div>
             </div>
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password*</label>
+
+            <div className="input-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
               <input
-                type="password"
                 id="confirmPassword"
+                type="password"
                 name="confirmPassword"
+                placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                placeholder="Confirm your password"
-                minLength="6"
+                className="glass-input"
+                autoComplete="new-password"
               />
             </div>
           </div>
-          <button type="submit" disabled={loading} className="register-button">
-            {loading ? 'Creating Company Account...' : 'Register Company'}
+
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? 'Creating Account...' : 'Register Company'}
           </button>
         </form>
-        <div className="auth-link">
-          Already have an account? <Link to="/login">Login</Link>
+
+        <div className="register-footer">
+          Already have an account? 
+          <a href="/login">Sign In</a>
         </div>
       </div>
     </div>

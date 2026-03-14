@@ -91,48 +91,41 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <h2>Login to SmartAttend</h2>
+      <div className="glass-panel login-box">
+        <div className="login-header">
+          <h2>Welcome Back</h2>
+          <p>Sign in to your SmartAttend dashboard</p>
+        </div>
+
         {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="input-group">
+            <label htmlFor="email">Work Email</label>
             <input
-              type="email"
               id="email"
+              type="email"
               name="email"
+              placeholder="admin@company.com"
               value={formData.email}
               onChange={handleChange}
               required
-              disabled={loading}
-              placeholder="Enter your email"
+              className="glass-input"
+              autoComplete="email"
             />
           </div>
-          <div className="form-group">
+
+          <div className="input-group">
             <label htmlFor="password">Password</label>
             <input
-              type="password"
               id="password"
+              type="password"
               name="password"
+              placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
               required
-              disabled={loading}
-              placeholder="Enter your password"
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="companyName">Company Name</label>
-            <input
-              type="text"
-              id="companyName"
-              name="companyName"
-              value={formData.companyName}
-              onChange={handleChange}
-              disabled={loading}
-              placeholder="Enter your company name (optional)"
-            />
-            <small className="form-helper">Provide your company name to access your company data</small>
           </div>
           <button type="submit" disabled={loading} className="login-button">
             {loading ? 'Logging in...' : 'Login'}

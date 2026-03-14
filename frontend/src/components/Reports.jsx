@@ -126,16 +126,23 @@ const Reports = () => {
 
   return (
     <div className="reports-container">
-      <h1>Generate Attendance Report</h1>
+      <div className="reports-header">
+        <h1 className="reports-title">Attendance Reports</h1>
+        <p className="reports-subtitle">Generate insights and statistical overviews of your team's presence.</p>
+      </div>
 
       <div className="report-filters">
         <div className="filter-group">
-          <label>Date Range:</label>
+          <label>Start Date</label>
           <input
             type="date"
             value={dateRange.startDate}
             onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
           />
+        </div>
+        
+        <div className="filter-group">
+          <label>End Date</label>
           <input
             type="date"
             value={dateRange.endDate}
@@ -144,7 +151,7 @@ const Reports = () => {
         </div>
 
         <div className="filter-group">
-          <label>Report Type:</label>
+          <label>Report Interval</label>
           <select value={reportType} onChange={(e) => setReportType(e.target.value)}>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -153,7 +160,7 @@ const Reports = () => {
         </div>
 
         <div className="filter-group">
-          <label>Department:</label>
+          <label>Department</label>
           <select value={department} onChange={(e) => setDepartment(e.target.value)}>
             <option value="all">All Departments</option>
             <option value="computer">Computer Science</option>
@@ -168,47 +175,51 @@ const Reports = () => {
           onClick={generateReport}
           disabled={loading || !dateRange.startDate || !dateRange.endDate}
         >
-          {loading ? 'Generating...' : 'Generate Report'}
+          {loading ? 'Generating...' : 'Run Report'}
         </button>
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
       {reportData && (
         <div className="report-content">
           <div className="report-summary">
-            <div className="summary-card">
+            <div className="glass-card summary-card">
               <h3>Total Students</h3>
               <p>{reportData.totalStudents}</p>
             </div>
-            <div className="summary-card">
+            <div className="glass-card summary-card">
               <h3>Present</h3>
               <p>{reportData.totalPresent}</p>
             </div>
-            <div className="summary-card">
+            <div className="glass-card summary-card">
               <h3>Absent</h3>
               <p>{reportData.totalAbsent}</p>
             </div>
-            <div className="summary-card">
+            <div className="glass-card summary-card">
               <h3>Attendance Rate</h3>
               <p>{reportData.attendanceRate}%</p>
             </div>
           </div>
 
           <div className="charts-container">
-            <div className="chart-card">
-              <h2>Attendance Trend</h2>
-              <Line data={chartData} options={chartOptions} />
+            <div className="glass-card chart-card">
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>Attendance Trend</h2>
+              <div style={{ position: 'relative', height: '300px', width: '100%' }}>
+                  <Line data={chartData} options={{...chartOptions, maintainAspectRatio: false }} />
+              </div>
             </div>
-            <div className="chart-card">
-              <h2>Attendance Distribution</h2>
-              <Doughnut data={doughnutData} options={chartOptions} />
+            <div className="glass-card chart-card">
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>Distribution</h2>
+              <div style={{ position: 'relative', height: '300px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <Doughnut data={doughnutData} options={{...chartOptions, maintainAspectRatio: false }} />
+              </div>
             </div>
           </div>
 
-          <div className="report-actions">
+          <div className="report-actions" style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button className="download-button" onClick={downloadReport}>
-              Download Report (PDF)
+               📥 Download PDF
             </button>
           </div>
         </div>

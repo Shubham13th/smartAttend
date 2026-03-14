@@ -7,29 +7,19 @@ const EmptyState = ({ companyName }) => {
 
   return (
     <div className="empty-state">
-      <div className="empty-state-content">
-        <h2>Welcome to SmartAttend!</h2>
-        <p className="company-welcome">
-          {companyName ? `Your company "${companyName}" has been set up successfully.` : 'Your company has been set up successfully.'}
-        </p>
-        <p className="empty-message">
-          It looks like you haven&apos;t registered any employees yet. Start by adding employees to track their attendance.
-        </p>
-        <div className="empty-actions">
-          <button 
-            className="primary-action"
-            onClick={() => navigate('/face-detection')}
-          >
-            Register Employees
-          </button>
-          <button 
-            className="secondary-action"
-            onClick={() => navigate('/employees')}
-          >
-            View Employees
-          </button>
-        </div>
+      <div className="empty-state-icon">
+        👋
       </div>
+      <h3>Welcome to {companyName || 'your new workspace'}!</h3>
+      <p>
+        Your employee directory is currently empty. Get started by registering your first employee using our secure facial recognition system.
+      </p>
+      <button 
+        onClick={() => navigate('/face-detection')}
+        className="action-btn primary"
+      >
+        Launch Scanner
+      </button>
     </div>
   );
 };
@@ -38,8 +28,4 @@ EmptyState.propTypes = {
   companyName: PropTypes.string
 };
 
-EmptyState.defaultProps = {
-  companyName: ''
-};
-
-export default EmptyState; 
+export default EmptyState;

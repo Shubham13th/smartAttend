@@ -1,86 +1,103 @@
 .department-stats {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
-.department-stats h3 {
-  color: #fff;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.department-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  padding: 0.5rem;
-}
-
-.department-card {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.department-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.department-card h4 {
-  color: #2c3e50;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  text-align: center;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 0.5rem;
-}
-
-.department-metrics {
+.department-list {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
-.metric {
-  display: flex;
-  justify-content: space-between;
+.department-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   align-items: center;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
-.metric .label {
-  color: #2c3e50;
-  font-weight: 500;
+.department-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border-highlight);
 }
 
-.metric .value {
-  color: #3498db;
+.dept-name {
   font-weight: 600;
-  font-size: 1.1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Responsive adjustments */
+.dept-name::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-tertiary);
+}
+
+.dept-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.dept-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.dept-stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Progress Bar for Rate */
+.rate-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rate-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+  width: 45px;
+  text-align: right;
+}
+
 @media (max-width: 768px) {
-  .department-grid {
-    grid-template-columns: 1fr;
+  .department-item {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
   }
-  
-  .department-card {
-    padding: 1rem;
+  .dept-name {
+    grid-column: span 2;
+    margin-bottom: 0.5rem;
   }
-  
-  .department-metrics {
-    gap: 0.5rem;
+  .rate-container {
+    grid-column: span 2;
   }
-} 
+}

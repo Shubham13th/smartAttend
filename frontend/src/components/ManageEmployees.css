@@ -1,56 +1,58 @@
-.manage-employees {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+.manage-employees-container {
+  /* Inherits padding from App.css overall layout */
+  animation: fade-in-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.manage-employees h1 {
-  color: #2d3748;
+.manage-header {
   margin-bottom: 2rem;
-  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
 }
 
+.manage-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
 
+.manage-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
 
 .employees-list {
-  display: flex; /* Keep it as flex */
-  flex-wrap: wrap; /* Allows wrapping to next line */
-  gap: 1.5rem; /* Space between cards */
-  justify-content: center; /* Center the items */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
-.employee-card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.manage-card {
   padding: 1.5rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-  flex: 1 1 300px; /* Allow cards to grow and shrink, with a base width of 300px */
-  max-width: 300px; /* Set a max width for the cards */
-}
-
-
-.employee-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
 }
 
 .employee-info h3 {
-  color: #3182ce;
+  color: var(--text-primary);
   margin: 0 0 0.5rem;
   font-size: 1.25rem;
-
+  font-weight: 600;
 }
 
 .employee-info p {
   margin: 0.25rem 0;
-  color: #4a5568;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .button-group {
   display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1.5rem;
   gap: 0.5rem;
 }
 
@@ -58,116 +60,104 @@
 .delete-button,
 .save-button,
 .cancel-button {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  font-weight: 600;
+  font-size: 0.9rem;
   flex: 1;
+  transition: all var(--transition-fast);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .edit-button {
-  background-color: #4299e1;
-  color: white;
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--accent-tertiary);
+  border: 1px solid rgba(6, 182, 212, 0.2);
 }
-
 .edit-button:hover {
-  background-color: #3182ce;
+  background: var(--accent-tertiary);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
 }
 
 .delete-button {
-  background-color: #fc8181;
-  color: white;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
-
 .delete-button:hover {
-  background-color: #f56565;
+  background: var(--accent-danger);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
 }
 
 .save-button {
-  background-color: #48bb78;
-  color: white;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
-
 .save-button:hover {
-  background-color: #38a169;
+  background: var(--accent-success);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
 }
 
 .cancel-button {
-  background-color: #cbd5e0;
-  color: #2d3748;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
 }
-
 .cancel-button:hover {
-  background-color: #a0aec0;
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-highlight);
 }
 
+/* Edit Form inside Card */
 .edit-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 1;
 }
 
-.edit-form input {
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 0.875rem;
+.edit-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
 }
 
-.edit-form input:focus {
+.edit-input:focus {
   outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  border-color: var(--accent-primary);
+  background: rgba(15, 23, 42, 0.8);
 }
 
-.edit-form input:disabled {
-  background-color: #f7fafc;
-  color: #718096;
+.edit-input:disabled {
+  background: rgba(15, 23, 42, 0.2);
+  color: var(--text-muted);
   cursor: not-allowed;
+  border-color: transparent;
 }
 
-.loading,
-.error {
-  text-align: center;
-  margin-top: 2rem;
-  padding: 1rem;
-  border-radius: 8px;
-}
-
-.loading {
-  background-color: #ebf8ff;
-  color: #2c5282;
-}
-
-.error {
-  background-color: #fff5f5;
-  color: #c53030;
-}
-
+/* Empty State / Feedback */
 .no-employees {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 2rem;
-  background-color: #f7fafc;
-  border-radius: 8px;
-  color: #4a5568;
+  padding: 3rem;
+  color: var(--text-secondary);
 }
 
-@media (max-width: 768px) {
-  .manage-employees {
-    padding: 1rem;
-  }
-
+@media (max-width: 600px) {
   .employees-list {
-    flex-direction: column; /* Stack cards vertically on small screens */
-    align-items: center; /* Center items */
+    grid-template-columns: 1fr;
   }
-
-  .employee-card {
-    flex: 1 1 100%; /* Full width on smaller screens */
-    max-width: none; /* Remove max width */
-  }
-} 
-
+}

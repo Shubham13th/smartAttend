@@ -216,68 +216,79 @@ const Dashboard = () => {
   // Show empty state if no employees are registered
   if (stats.totalEmployees === 0) {
     return (
-      <div className="dashboard">
+      <div className="dashboard-container">
         <header className="dashboard-header">
-          <div className="header-info">
-            <h1>Employee Attendance Dashboard</h1>
+          <div>
+            <h1 className="dashboard-title">Overview</h1>
             {companyInfo.companyName && (
-              <h2 className="company-name">Company: {companyInfo.companyName}</h2>
+              <p className="dashboard-subtitle">{companyInfo.companyName} Workspace</p>
             )}
           </div>
-          <div className="header-actions">
-            <button onClick={refreshDashboardData} className="refresh-btn" title="Refresh Dashboard">
-              Refresh
-            </button>
-          </div>
+          <button onClick={refreshDashboardData} className="refresh-button" title="Refresh Data">
+            <span>↻</span> Refresh
+          </button>
         </header>
-        <EmptyState companyName={companyInfo.companyName} />
+
+        <div className="glass-card" style={{ padding: '2rem' }}>
+          <EmptyState companyName={companyInfo.companyName} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
+    <div className="dashboard-container">
       <header className="dashboard-header">
-        <div className="header-info">
-          <h1>Employee Attendance Dashboard</h1>
-          {companyInfo.companyName && (
-            <h2 className="company-name">Company: {companyInfo.companyName}</h2>
+        <div>
+          <h1 className="dashboard-title">Overview</h1>
+          {companyInfo.companyName ? (
+            <p className="dashboard-subtitle">Welcome back, {companyInfo.userName} • {companyInfo.companyName} Workspace</p>
+          ) : (
+            <p className="dashboard-subtitle">Welcome back, {companyInfo.userName}</p>
           )}
         </div>
-        <div className="header-actions">
-          <button onClick={refreshDashboardData} className="refresh-btn" title="Refresh Dashboard">
-            Refresh
-          </button>
-        </div>
+        <button onClick={refreshDashboardData} className="refresh-button" title="Refresh Data">
+          <span>↻</span> Refresh
+        </button>
       </header>
 
-      <div className="welcome-banner">
-        <p>Welcome, {companyInfo.userName || 'User'}! Here&apos;s your company attendance overview.</p>
+      <div className="kpi-grid">
+        <div className="glass-card kpi-card">
+          <div className="kpi-header">
+            <div className="kpi-icon">👥</div>
+            <h3 className="kpi-title">Total Staff</h3>
+          </div>
+          <p className="kpi-value">{stats.totalEmployees}</p>
+        </div>
+        
+        <div className="glass-card kpi-card">
+          <div className="kpi-header">
+            <div className="kpi-icon">✅</div>
+            <h3 className="kpi-title">Present Today</h3>
+          </div>
+          <p className="kpi-value">{stats.presentToday}</p>
+        </div>
+        
+        <div className="glass-card kpi-card">
+          <div className="kpi-header">
+            <div className="kpi-icon">📈</div>
+            <h3 className="kpi-title">Attendance Rate</h3>
+          </div>
+          <p className="kpi-value">{stats.attendanceRate}%</p>
+        </div>
       </div>
 
-      <div className="stats-container">
-        <div className="stat-card">
-          <h3>Total Employees</h3>
-          <p className="stat-value">{stats.totalEmployees}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Present Today</h3>
-          <p className="stat-value">{stats.presentToday}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Attendance Rate</h3>
-          <p className="stat-value">{stats.attendanceRate}%</p>
-        </div>
+      <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
+        <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', fontWeight: 600 }}>Department Breakdown</h3>
+        <DepartmentStats stats={stats.departmentStats} />
       </div>
 
-      <DepartmentStats stats={stats.departmentStats} />
-
-      <div className="action-buttons">
-        <button onClick={() => navigate('/face-detection')} className="action-btn">
-          Mark Attendance
+      <div className="quick-actions">
+        <button onClick={() => navigate('/face-detection')} className="action-btn primary">
+          Launch Scanner
         </button>
-        <button onClick={() => navigate('/manage-employees')} className="action-btn">
-          Manage Employees
+        <button onClick={() => navigate('/manage-employees')} className="action-btn secondary">
+          Manage Staff
         </button>
       </div>
     </div>

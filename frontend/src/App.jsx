@@ -6,6 +6,7 @@ import Dashboard from "./Dashboard";
 import FaceDetection from "./FaceDetection";
 import Employees from "./Employees";
 import ManageEmployees from "./components/ManageEmployees";
+import Reports from "./components/Reports";
 import Home from "./components/Home";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -107,6 +108,12 @@ function App() {
               path="/manage-employees" 
               element={
                 isAuthenticated ? <ManageEmployees /> : <Navigate to="/login" />
+              } 
+            />
+            <Route 
+              path="/reports" 
+              element={
+                isAuthenticated ? <Reports /> : <Navigate to="/login" />
               } 
             />
           </Routes>
