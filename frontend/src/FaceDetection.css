@@ -9,12 +9,16 @@
 }
 
 .face-detection-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
   text-align: center;
   flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent-tertiary) 0%, var(--accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
 }
 
 /* Main content wrapper for side-by-side layout */
@@ -25,7 +29,7 @@
   overflow: hidden;
   min-height: 0;
   width: 100%;
-  max-width: 1600px; /* Allow much wider stretching than standard pages */
+  max-width: 1200px; /* Restored closer to original so it's not too stretched */
   margin: 0 auto;
 }
 
@@ -129,11 +133,14 @@ select.registration-input option {
 
 /* Status Message */
 .status-message {
-  padding: 0.6rem 1rem;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--accent-primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-align: center;
   font-size: 0.85rem;
   font-weight: 500;
@@ -144,14 +151,13 @@ select.registration-input option {
 .video-container {
   position: relative;
   width: 100%;
-  flex: 1;           /* take all remaining vertical space */
-  min-height: 0;     /* essential for flex shrink to work */
+  flex: 1; /* Expand to fill ALL available vertical height in the parent flex column */
+  margin: 0 auto; /* Center horizontally */
   border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.4);
-  /* The video will naturally grow as wide as possible within this flex container */
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(15, 23, 42, 0.8);
 }
 
 .video-container video {
@@ -172,18 +178,20 @@ select.registration-input option {
 
 /* Detected Name */
 .detected-name {
-  padding: 0.6rem 1rem;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: var(--glass-backdrop-blur-sm);
-  -webkit-backdrop-filter: var(--glass-backdrop-blur-sm);
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(30, 41, 59, 0.7) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 500;
   text-align: center;
   width: 100%;
   flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
 
 .detected-name span {
@@ -201,21 +209,24 @@ select.registration-input option {
 }
 
 .navigation-buttons .nav-button {
-  padding: 0.7rem 1.5rem;
-  border-radius: var(--radius-sm);
+  padding: 0.7rem 1.8rem;
+  border-radius: 50px; /* Pillow-shaped pill buttons */
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  background: var(--glass-bg);
+  transition: all var(--transition-normal);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .navigation-buttons .nav-button:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Responsive */

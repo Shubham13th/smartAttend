@@ -21,33 +21,22 @@ const routerOptions = {
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  // Initialize state synchronously so we don't flash the login page on refresh if a token exists
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const token = localStorage.getItem("token");
+    return !!(token && token !== "undefined" && token !== "null" && token !== "");
+  });
 
   useEffect(() => {
+    // We still have this to act as a cleanup/validation pass
     const token = localStorage.getItem("token");
-    
     if (!token || token === "undefined" || token === "null" || token === "") {
       localStorage.removeItem("token");
       localStorage.removeItem("userData");
       setIsAuthenticated(false);
     } else {
-      // try {
-      //   const tokenParts = token.split('.');
-      //   if (tokenParts.length !== 3) {
-      //     throw new Error('Invalid token format');
-      //   }
-        // Only set authenticated to true if token is valid
-        setIsAuthenticated(true);
-      // } catch (error) {
-      //   console.error('Invalid token:', error);
-      //   localStorage.removeItem("token");
-      //   localStorage.removeItem("userData");
-      //   setIsAuthenticated(false);
-      // }
+      setIsAuthenticated(true);
     }
-    
-    setAuthChecked(true);
   }, []);
 
   const handleLogin = () => {
@@ -59,10 +48,6 @@ function App() {
     localStorage.removeItem("userData");
     setIsAuthenticated(false);
   };
-
-  if (!authChecked) {
-    return <div className="loading">Loading...</div>;
-  }
 
   return (
     <Router {...routerOptions}>

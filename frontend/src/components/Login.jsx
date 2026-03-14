@@ -101,12 +101,11 @@ const Login = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="input-group">
-            <label htmlFor="email">Work Email</label>
             <input
               id="email"
               type="email"
               name="email"
-              placeholder="admin@company.com"
+              placeholder="Work Email (e.g. admin@company.com)"
               value={formData.email}
               onChange={handleChange}
               required
@@ -116,19 +115,19 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div className="input-group">
-            <label htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               name="password"
-              placeholder="••••••••"
+              placeholder="Password"
               value={formData.password}
               onChange={handleChange}
               required
+              className="glass-input"
             />
           </div>
-          <button type="submit" disabled={loading} className="login-button">
-            {loading ? 'Logging in...' : 'Login'}
+          <button type="submit" disabled={loading} className="auth-button">
+            {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
         <div className="auth-link">
