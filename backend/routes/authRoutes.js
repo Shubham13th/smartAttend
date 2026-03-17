@@ -171,11 +171,11 @@ router.post('/register', async (req, res) => {
 
 // Login Route
 router.post('/login', async (req, res) => {
-  console.log('--- Login Attempt ---');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Request Body Keys:', Object.keys(req.body));
-  console.log('Email received:', req.body.email ? 'Yes' : 'No');
-  console.log('Password received:', req.body.password ? 'Yes' : 'No');
+  console.log('--- Login Attempt Details ---');
+  console.log('Time:', new Date().toISOString());
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body Keys:', Object.keys(req.body));
+  console.log('Body Content:', JSON.stringify(req.body, null, 2));
   
   const { email, password } = req.body;
   
