@@ -46,6 +46,7 @@ const FaceDetection = () => {
   const [status, setStatus] = useState("");
   const [lastAttendanceMark, setLastAttendanceMark] = useState({});
   const [isProcessingAttendance, setIsProcessingAttendance] = useState(false);
+  const [accumulatedEncodings, setAccumulatedEncodings] = useState([]);
 
   // Load models and initialize
   useEffect(() => {
@@ -235,54 +236,88 @@ const FaceDetection = () => {
 
       setStatus("Processing face data...");
 
-      // Store the face descriptor
-      const employeeData = {
-        name,
-        email,
-        department,
-        encoding: Array.from(detections.descriptor),
-        angle: captureAngles[currentAngle]
-      };
+      // Store the face descriptor in an accumulated array
+      setAccumulatedEncodings(prev => {
+        const newEncodings = [...prev, Array.from(detections.descriptor)];
+        
+        // If we haven't reached the last angle yet, just advance the state
+        if (currentAngle < captureAngles.length - 1) {
+          setCurrentAngle(currentAngle + 1);
+          setStatus(`Face captured successfully! Please position your face ${captureAngles[currentAngle + 1]}`);
+          return newEncodings;
+        }
 
-      // Get user data from localStorage if available
-      const userDataString = localStorage.getItem('userData');
-      if (userDataString) {
-        try {
-          const userData = JSON.parse(userDataString);
-          if (userData.companyId) {
-            console.log(`Adding employee to company: ${userData.companyId}`);
-            employeeData.companyId = userData.companyId;
+        // If this IS the last angle, we submit the final data to the backend
+        const submitRegistration = async () => {
+          try {
+            setStatus("Finalizing registration...");
+            const employeeData = {
+              name,
+              email,
+              department,
+              // Backend might expect a single encoding or an array of encodings. 
+              // Sending the first one or an average is standard for tinyFaceDetector. 
+              // We'll send the primary (front) encoding as a fallback, but you could 
+              // adjust backend to accept the full newEncodings array
+              encoding: newEncodings[0], 
+              angle: "All" 
+            };
+
+            // Get user data from localStorage if available
+            const userDataString = localStorage.getItem('userData');
+            if (userDataString) {
+              try {
+                const userData = JSON.parse(userDataString);
+                if (userData.companyId) {
+                  console.log(`Adding employee to company: ${userData.companyId}`);
+                  employeeData.companyId = userData.companyId;
+                }
+              } catch (error) {
+                console.error("Error parsing user data:", error);
+              }
+            }
+
+            // Register employee via the employees endpoint
+            const response = await axios.post("https://smartattend-backend.vercel.app/api/employees/register", employeeData, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+
+            if (response.status === 200 || response.status === 201) {
+              setStatus(`${name} registered successfully!`);
+              setIsCapturing(false);
+              setCurrentAngle(0);
+              setName("");
+              setEmail("");
+              setDepartment("");
+              setAccumulatedEncodings([]); // clear for next time
+              fetchRegisteredEmployees();
+            } else {
+              setStatus(response.data?.message || "Registration failed");
+            }
+          } catch (error) {
+            console.error("Error submitting registration:", error);
+            const serverMsg = error.response?.data?.error || error.response?.data?.message;
+            if (error.response?.status === 401) {
+              setStatus("Session expired. Please login again");
+              window.location.href = "/login";
+            } else if (error.response?.status === 409) {
+              setStatus("Employee with this email already exists");
+            } else {
+              setStatus(`Error: ${serverMsg || error.message}`);
+            }
+            // Reset on failure so they can try again
+            setIsCapturing(false);
+            setCurrentAngle(0);
+            setAccumulatedEncodings([]);
           }
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-        }
-      }
+        };
 
-      // Register employee via the employees endpoint
-      const response = await axios.post("https://smartattend-backend.vercel.app/api/employees/register", employeeData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        submitRegistration();
+        return newEncodings;
       });
 
-      // Handle the response properly
-      if (response.status === 200 || response.status === 201) {
-        // Move to next angle or complete registration
-        if (currentAngle < captureAngles.length - 1) {
-          setCurrentAngle(prev => prev + 1);
-          setStatus(`Face captured successfully! Please position your face ${captureAngles[currentAngle + 1]}`);
-        } else {
-          setStatus(`${name} registered successfully!`);
-          setIsCapturing(false);
-          setCurrentAngle(0);
-          setName("");
-          setEmail("");
-          setDepartment("");
-          fetchRegisteredEmployees();
-        }
-      } else {
-        setStatus(response.data?.message || "Registration failed");
-      }
     } catch (error) {
       console.error("Error capturing face:", error);
       const serverMsg = error.response?.data?.error || error.response?.data?.message;
