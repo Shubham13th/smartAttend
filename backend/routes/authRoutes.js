@@ -171,26 +171,34 @@ router.post('/register', async (req, res) => {
 
 // Login Route
 router.post('/login', async (req, res) => {
-  console.log('Login request received:', { email: req.body.email });
+  console.log('--- Login Attempt ---');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Request Body Keys:', Object.keys(req.body));
+  console.log('Email received:', req.body.email ? 'Yes' : 'No');
+  console.log('Password received:', req.body.password ? 'Yes' : 'No');
+  
   const { email, password } = req.body;
   
   try {
     if (!email || !password) {
+      console.log('❌ Login failed: Missing email or password');
       return res.status(400).json({ error: '⚠️ Email and password required' });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: '⚠️ Invalid credentials' });
+      console.log(`❌ Login failed: User not found for email: ${email}`);
+      return res.status(401).json({ error: '⚠️ Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: '⚠️ Invalid credentials' });
+      console.log(`❌ Login failed: Incorrect password for email: ${email}`);
+      return res.status(401).json({ error: '⚠️ Invalid credentials' });
     }
 
     const token = generateToken(user._id);
-    console.log('User logged in successfully:', { userId: user._id, email: user.email, companyId: user.companyId });
+    console.log('✅ User logged in successfully:', { userId: user._id, email: user.email });
     
     res.status(200).json({ 
       message: '✅ Login successful', 

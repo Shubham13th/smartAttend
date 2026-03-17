@@ -27,7 +27,9 @@ app.use(express.json()); // ✅ Ensure request body is parsed correctly
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   if (req.method === 'POST' || req.method === 'PUT') {
-    console.log('Request Body:', JSON.stringify(req.body, null, 2));
+    // Log the structure of the body rather than the full body for privacy if needed, 
+    // but here we'll log keys and presence of data.
+    console.log('Request Body Keys:', Object.keys(req.body));
   }
   next();
 });
