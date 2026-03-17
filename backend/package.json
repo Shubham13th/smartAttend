@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "SmartAttend Backend API",
   "engines": {
-    "node": ">=18.x"
+    "node": "18.x"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
