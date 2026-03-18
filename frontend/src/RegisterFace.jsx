@@ -83,45 +83,73 @@ const RegisterFace = () => {
       });
   };
 
-  // Continuous face preview on canvas (just box, no recognition)
+  // Continuous face preview — starts via the video 'play' event so we
+  // never run before the camera is actually streaming
   useEffect(() => {
     if (!isModelLoaded) return;
-    const interval = setInterval(async () => {
+    let timerId;
+
+    const detect = async () => {
       if (
         !videoRef.current ||
         !canvasRef.current ||
+        videoRef.current.readyState < 2 ||
         videoRef.current.paused ||
         videoRef.current.videoWidth === 0
-      )
+      ) {
+        timerId = setTimeout(detect, 200);
         return;
+      }
 
       const vw = videoRef.current.videoWidth;
       const vh = videoRef.current.videoHeight;
       canvasRef.current.width = vw;
       canvasRef.current.height = vh;
 
-      const detections = await faceapi
-        .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks();
+      try {
+        const detections = await faceapi
+          .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+          .withFaceLandmarks();
 
-      setFaceDetected(detections.length > 0);
+        setFaceDetected(detections.length > 0);
 
-      const ctx = canvasRef.current.getContext("2d");
-      ctx.clearRect(0, 0, vw, vh);
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(0, 0, vw, vh);
 
-      const displaySize = { width: vw, height: vh };
-      const resized = faceapi.resizeResults(detections, displaySize);
+        const resized = faceapi.resizeResults(detections, { width: vw, height: vh });
+        resized.forEach((det) => {
+          const box = det.detection.box;
+          const mx = vw - box.x - box.width; // mirror x to match CSS-mirrored video
+          drawFaceBox(ctx, mx, box.y, box.width, box.height, isCapturing);
+        });
+      } catch (_) {
+        // Ignore detection errors silently — loop continues
+      }
 
-      resized.forEach((det) => {
-        const box = det.detection.box;
-        // Mirror x so the box lines up with the CSS-mirrored video
-        const mx = vw - box.x - box.width;
-        drawFaceBox(ctx, mx, box.y, box.width, box.height, isCapturing);
-      });
-    }, 200);
+      timerId = setTimeout(detect, 200);
+    };
 
-    return () => clearInterval(interval);
+    const onPlay = () => {
+      clearTimeout(timerId);
+      timerId = setTimeout(detect, 100);
+    };
+
+    if (videoRef.current) {
+      videoRef.current.addEventListener("play", onPlay);
+      // If video is already playing (e.g. fast model load)
+      if (!videoRef.current.paused && videoRef.current.readyState >= 2) {
+        onPlay();
+      }
+    }
+
+    return () => {
+      clearTimeout(timerId);
+      if (videoRef.current) {
+        videoRef.current.removeEventListener("play", onPlay);
+      }
+    };
   }, [isModelLoaded, isCapturing]);
+
 
   const drawFaceBox = (ctx, x, y, w, h, scanning) => {
     const color = scanning ? "#facc15" : "#34d399";

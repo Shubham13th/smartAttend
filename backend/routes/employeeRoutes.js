@@ -98,7 +98,25 @@ router.post('/register', verifyToken, async (req, res) => {
       lastAttendance: null
     });
 
-    await employee.save();
+    // Try saving — if it fails due to stale global email_1 index, drop it and retry once
+    try {
+      await employee.save();
+    } catch (saveError) {
+      // code 11000 = MongoDB duplicate key error
+      if (saveError.code === 11000 && saveError.message.includes('email_1')) {
+        console.log('Stale global email_1 index detected — dropping it and retrying...');
+        try {
+          await require('mongoose').connection.collection('employees').dropIndex('email_1');
+          console.log('✅ Dropped stale email_1 index');
+        } catch (dropErr) {
+          console.log('Could not drop index (may not exist):', dropErr.message);
+        }
+        // Retry the save
+        await employee.save();
+      } else {
+        throw saveError; // Re-throw other errors
+      }
+    }
 
     console.log(`Employee ${name} (${employeeId}) registered for company: ${companyId}`);
 
