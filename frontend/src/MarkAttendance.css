@@ -1,0 +1,380 @@
+/* ============================================================
+   MarkAttendance.css  – Smartphone Face Unlock Style UI
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --ma-bg: #0d1117;
+  --ma-surface: #161b22;
+  --ma-border: rgba(255, 255, 255, 0.08);
+  --ma-green: #34d399;
+  --ma-red: #f87171;
+  --ma-blue: #60a5fa;
+  --ma-text: #e6edf3;
+  --ma-muted: #8b949e;
+  --ma-radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.ma-page {
+  min-height: 100vh;
+  background: var(--ma-bg);
+  color: var(--ma-text);
+  font-family: "Inter", sans-serif;
+  position: relative;
+}
+
+/* ============================================================
+   Full-screen Success / Already-marked Overlay
+   ============================================================ */
+.ma-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 999;
+  animation: ma-overlay-in 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes ma-overlay-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.ma-overlay-success {
+  background: rgba(52, 211, 153, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+.ma-overlay-already {
+  background: rgba(96, 165, 250, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.ma-overlay-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  font-weight: 700;
+}
+
+.ma-overlay-success .ma-overlay-icon {
+  background: rgba(52, 211, 153, 0.25);
+  border: 2px solid var(--ma-green);
+  color: var(--ma-green);
+  box-shadow: 0 0 40px rgba(52, 211, 153, 0.5);
+  animation: ma-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ma-overlay-already .ma-overlay-icon {
+  background: rgba(96, 165, 250, 0.2);
+  border: 2px solid var(--ma-blue);
+  color: var(--ma-blue);
+}
+
+@keyframes ma-pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.ma-overlay-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ma-text);
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.ma-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 100vh;
+  gap: 0;
+}
+
+@media (max-width: 860px) {
+  .ma-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   Left: Camera
+   ============================================================ */
+.ma-camera-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  padding: 24px;
+  gap: 16px;
+}
+
+.ma-cam-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ma-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(255, 59, 59, 0.15);
+  border: 1px solid rgba(255, 59, 59, 0.3);
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #ff5c5c;
+}
+
+.ma-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5c5c;
+  animation: ma-blink 1s infinite;
+}
+
+@keyframes ma-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.ma-cam-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ma-text);
+}
+
+.ma-video-wrapper {
+  position: relative;
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #080808;
+  min-height: 400px;
+}
+
+.ma-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror for natural selfie view */
+  display: block;
+}
+
+.ma-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* NO scaleX(-1) here — JS drawing code manually mirrors coordinates */
+}
+
+/* Status bar */
+.ma-status {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  text-align: center;
+}
+
+.ma-status-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
+.ma-status-success {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.25);
+  color: var(--ma-green);
+}
+
+.ma-status-error {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: var(--ma-red);
+}
+
+/* ============================================================
+   Right: Info Panel
+   ============================================================ */
+.ma-panel {
+  background: var(--ma-surface);
+  border-left: 1px solid var(--ma-border);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+}
+
+.ma-panel-recognized {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ma-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.ma-panel-icon {
+  font-size: 2rem;
+}
+
+.ma-panel-label {
+  font-size: 0.72rem;
+  color: var(--ma-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ma-panel-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ma-text);
+  margin-top: 2px;
+}
+
+/* Stats */
+.ma-panel-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ma-stat {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ma-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff, var(--ma-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ma-stat-label {
+  font-size: 0.75rem;
+  color: var(--ma-muted);
+  text-align: center;
+}
+
+/* Today's Log */
+.ma-log h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ma-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.ma-log-empty {
+  font-size: 0.85rem;
+  color: var(--ma-muted);
+  font-style: italic;
+}
+
+.ma-log ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.ma-log ul li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(52, 211, 153, 0.07);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: 10px;
+  animation: ma-slide-in 0.3s ease;
+}
+
+@keyframes ma-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ma-log-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ma-text);
+}
+
+.ma-log-time {
+  font-size: 0.8rem;
+  color: var(--ma-muted);
+}
+
+/* Buttons */
+.ma-btn {
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.ma-btn-secondary {
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--ma-green);
+}
+
+.ma-btn-secondary:hover {
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.ma-btn-ghost {
+  background: transparent;
+  color: var(--ma-muted);
+  font-size: 0.85rem;
+}
+
+.ma-btn-ghost:hover {
+  color: var(--ma-text);
+}

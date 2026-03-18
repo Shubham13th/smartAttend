@@ -39,10 +39,16 @@ const Header = ({ isAuthenticated, onLogout }) => {
                 Dashboard
               </button>
               <button 
-                onClick={() => handleNavigation('/face-detection')} 
-                className={`nav-button ${location.pathname === '/face-detection' ? 'active' : ''}`}
+                onClick={() => handleNavigation('/register-face')} 
+                className={`nav-button ${location.pathname === '/register-face' ? 'active' : ''}`}
               >
-                Face Detection
+                Register Face
+              </button>
+              <button 
+                onClick={() => handleNavigation('/mark-attendance')} 
+                className={`nav-button ${location.pathname === '/mark-attendance' ? 'active' : ''}`}
+              >
+                Mark Attendance
               </button>
               <button 
                 onClick={() => handleNavigation('/employees')} 

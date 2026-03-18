@@ -103,12 +103,9 @@
 body:has(.login-container) .app-header,
 body:has(.login-container) .app-footer,
 body:has(.register-container) .app-header,
-body:has(.register-container) .app-footer,
-body:has(.face-detection-container) .app-header,
-body:has(.face-detection-container) .app-footer {
+body:has(.register-container) .app-footer {
   display: none;
 }
-body:has(.face-detection-container) .app-main,
 body:has(.login-container) .app-main,
 body:has(.register-container) .app-main {
   padding-top: 0;

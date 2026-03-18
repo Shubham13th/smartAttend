@@ -4,6 +4,8 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Dashboard from "./Dashboard";
 import FaceDetection from "./FaceDetection";
+import RegisterFace from "./RegisterFace";
+import MarkAttendance from "./MarkAttendance";
 import Employees from "./Employees";
 import ManageEmployees from "./components/ManageEmployees";
 import Reports from "./components/Reports";
@@ -81,6 +83,18 @@ function App() {
               path="/face-detection" 
               element={
                 isAuthenticated ? <FaceDetection /> : <Navigate to="/login" />
+              } 
+            />
+            <Route 
+              path="/register-face" 
+              element={
+                isAuthenticated ? <RegisterFace /> : <Navigate to="/login" />
+              } 
+            />
+            <Route 
+              path="/mark-attendance" 
+              element={
+                isAuthenticated ? <MarkAttendance /> : <Navigate to="/login" />
               } 
             />
             <Route 

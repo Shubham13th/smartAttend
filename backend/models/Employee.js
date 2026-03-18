@@ -9,7 +9,8 @@ const employeeSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
+    // NOTE: uniqueness is enforced by the compound index { companyId, email }
+    // NOT by a global unique here — same email can exist in different companies
     trim: true,
     lowercase: true
   },

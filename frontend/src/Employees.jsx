@@ -104,16 +104,26 @@ const Employees = () => {
               <div className="employee-avatar">
                 {getInitials(employee.name)}
               </div>
-              <div className="employee-status">
+              <div className="employee-status" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                 <span className={`status-badge ${employee.isActive ? 'active' : 'inactive'}`}>
                   {employee.isActive ? 'Active' : 'Inactive'}
+                </span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  padding: '2px 8px',
+                  borderRadius: '99px',
+                  background: employee.encoding ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${employee.encoding ? 'rgba(52,211,153,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: employee.encoding ? '#34d399' : '#8b949e'
+                }}>
+                  {employee.encoding ? '✓ Face Registered' : 'No Face Data'}
                 </span>
               </div>
             </div>
             
             <div className="employee-details">
               <h3 className="employee-name">{employee.name}</h3>
-              <span className="employee-role">{employee.position}</span>
+              <span className="employee-role">{employee.position || employee.department || 'No role assigned'}</span>
               
               <div className="detail-row" style={{ marginTop: '0.5rem' }}>
                 <span className="detail-icon">📧</span>

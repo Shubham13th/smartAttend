@@ -90,13 +90,21 @@ const fixUserIndexes = async () => {
       });
     }
 
-    // Drop the problematic username index
+    // Drop the problematic username index on users
     try {
       await db.collection('users').dropIndex('username_1');
       console.log('✅ Successfully dropped problematic username index');
     } catch (err) {
-      // Ignore if index doesn't exist
       console.log('Note: username_1 index not found or already dropped');
+    }
+
+    // Drop the stale global email_1 index on employees
+    // (was replaced by compound { companyId, email } unique index)
+    try {
+      await db.collection('employees').dropIndex('email_1');
+      console.log('✅ Successfully dropped stale global email_1 index on employees');
+    } catch (err) {
+      console.log('Note: employees.email_1 index not found or already dropped');
     }
 
     console.log('Database indexes check completed');
