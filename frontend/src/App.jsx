@@ -22,23 +22,72 @@ const routerOptions = {
   }
 };
 
+// Helper function to check if token is valid and not expired
+const isTokenValid = (token) => {
+  if (!token || token === "undefined" || token === "null" || token === "") return false;
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return false;
+    
+    // Replace non-url compatible chars with base64 standard chars
+    const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Decode base64 decoding correctly mapping each character
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    
+    const payload = JSON.parse(jsonPayload);
+    
+    // Check expiration (payload.exp is in seconds, Date.now() is in ms)
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return false; // Token has expired
+    }
+    
+    return true; // Token is valid
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return false; // Token is invalid format
+  }
+};
+
 function App() {
   // Initialize state synchronously so we don't flash the login page on refresh if a token exists
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const token = localStorage.getItem("token");
-    return !!(token && token !== "undefined" && token !== "null" && token !== "");
+    if (!isTokenValid(token)) {
+      // Clean up invalid or expired token
+      localStorage.removeItem("token");
+      localStorage.removeItem("userData");
+      return false;
+    }
+    return true;
   });
 
   useEffect(() => {
     // We still have this to act as a cleanup/validation pass
-    const token = localStorage.getItem("token");
-    if (!token || token === "undefined" || token === "null" || token === "") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("userData");
-      setIsAuthenticated(false);
-    } else {
-      setIsAuthenticated(true);
-    }
+    const validateTokenPeriodically = () => {
+      const token = localStorage.getItem("token");
+      if (!isTokenValid(token)) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+    };
+
+    // Check token immediately on mount
+    validateTokenPeriodically();
+
+    // Check token expiration periodically (every 1 minute)
+    const interval = setInterval(validateTokenPeriodically, 60000);
+    
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = () => {
